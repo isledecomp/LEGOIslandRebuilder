@@ -221,18 +221,73 @@ namespace Rebuilder
             }
         }
 
+        private bool IsValidDir(string dir)
+        {
+            return (File.Exists(dir + "/ISLE.EXE") && File.Exists(dir + "/LEGO1.DLL"));
+        }
+
         private void Run(object sender, EventArgs e)
         {
             string temp_path = Path.GetTempPath() + "lirebuild";
 
             Directory.CreateDirectory(temp_path);
 
-            string original_dir = "C:/Program Files (x86)/Lego Island";
+            string[] possible_dirs = {
+                "C:/Program Files (x86)/Lego Island",
+                "C:/Program Files/Lego Island",
+                "/Program Files (x86)/Lego Island",
+                "/Program Files/Lego Island"
+            };
+
+            string dir = "";
+            for (int i=0;i<possible_dirs.Length;i++)
+            {
+                if (IsValidDir(possible_dirs[i]))
+                {
+                    dir = possible_dirs[i];
+                    break;
+                }
+            }
+
+            if (string.IsNullOrEmpty(dir))
+            {
+                using (OpenFileDialog ofd = new OpenFileDialog())
+                {
+                    ofd.Filter = "ISLE.EXE|ISLE.EXE";
+                    ofd.Title = "Where is Lego Island installed?";
+
+                    while (true)
+                    {
+                        if (ofd.ShowDialog() == DialogResult.OK)
+                        {
+                            dir = Path.GetDirectoryName(ofd.FileName);
+
+                            if (IsValidDir(dir))
+                            {
+                                break;
+                            }
+                            else
+                            {
+                                MessageBox.Show(
+                                    "This directory does not contain ISLE.EXE and LEGO1.DLL.",
+                                    "Failed to find critical files",
+                                    MessageBoxButtons.OK,
+                                    MessageBoxIcon.Error
+                                );
+                            }
+                        }
+                        else
+                        {
+                            return;
+                        }
+                    }
+                }
+            }
 
             try
             {
-                File.Copy(original_dir + "/ISLE.EXE", temp_path + "/ISLE.EXE", true);
-                File.Copy(original_dir + "/LEGO1.DLL", temp_path + "/LEGO1.DLL", true);
+                File.Copy(dir + "/ISLE.EXE", temp_path + "/ISLE.EXE", true);
+                File.Copy(dir + "/LEGO1.DLL", temp_path + "/LEGO1.DLL", true);
             }
             catch
             {
@@ -252,7 +307,7 @@ namespace Rebuilder
             */
 
             ProcessStartInfo start_info = new ProcessStartInfo(temp_path + "/ISLE.EXE");
-            start_info.WorkingDirectory = original_dir;
+            start_info.WorkingDirectory = dir;
             Process p = Process.Start(start_info);
 
             //Close();
