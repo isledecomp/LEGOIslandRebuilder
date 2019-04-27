@@ -118,7 +118,8 @@ namespace Rebuilder
                 "NOTE: This also changes your movement speed, therefore reducing this will cripple your ability to win races.");
             tip.SetToolTip(run_fullscreen, "Override the registry check and run Lego Island either full screen or windowed. " +
                 "Allows you to change modes without administrator privileges and registry editing.");
-            tip.SetToolTip(redirect_saves, "Redirect save data to a folder that's writable so games can be saved without administrator privileges.");
+            tip.SetToolTip(redirect_saves, "Redirect save data to a folder that's writable so games can be saved without administrator privileges.\n\n" +
+                "Saves will be stored in: " + Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\LEGO Island");
             tip.SetToolTip(stay_active_when_window_is_defocused, "Lego Island's default behavior is to pause all operations when defocused. " +
                 "This setting overrides that behavior and keeps Lego Island active even when unfocused.");
 
