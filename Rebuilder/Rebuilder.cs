@@ -14,6 +14,7 @@ namespace Rebuilder
         NumericUpDown turn_speed_control;
         CheckBox redirect_saves;
         CheckBox run_fullscreen;
+        CheckBox stay_active_when_window_is_defocused;
 
         Rebuilder() {
             Text = "Lego Island Rebuilder";
@@ -83,6 +84,15 @@ namespace Rebuilder
 
             row++;
 
+            stay_active_when_window_is_defocused = new CheckBox();
+            stay_active_when_window_is_defocused.Checked = false;
+            stay_active_when_window_is_defocused.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            stay_active_when_window_is_defocused.Text = "Stay active when window is defocused";
+            grid.Controls.Add(stay_active_when_window_is_defocused, 0, row);
+            grid.SetColumnSpan(stay_active_when_window_is_defocused, 2);
+
+            row++;
+
             redirect_saves = new CheckBox();
             redirect_saves.Checked = true;
             redirect_saves.Anchor = AnchorStyles.Left | AnchorStyles.Right;
@@ -127,6 +137,16 @@ namespace Rebuilder
             
             fs.Write(bytes, 0, bytes.Length);
         }
+
+        private void WriteByte(FileStream fs, byte b, long pos = -1)
+        {
+            if (pos > -1)
+            {
+                fs.Position = pos;
+            }
+
+            fs.WriteByte(b);
+        }
         
         private void WriteInt32(FileStream fs, Int32 integer, long pos = -1)
         {
@@ -142,45 +162,55 @@ namespace Rebuilder
 
         private void Patch(string dir)
         {
-            // Patch LEGO1.DLL
-            using (FileStream fs = File.Open(dir + "/LEGO1.DLL", FileMode.Open, FileAccess.Write))
+            using (FileStream lego1dll = File.Open(dir + "/LEGO1.DLL", FileMode.Open, FileAccess.Write))
+            using (FileStream isleexe = File.Open(dir + "/ISLE.EXE", FileMode.Open, FileAccess.Write))
             {
                 // Write turn speed hack (This undoubtedly opens up free bytes for more ASM, check it out at some point maybe)
-                Write(fs, new byte[]{ 0xEB, 0x1D }, 344889);
+                Write(lego1dll, new byte[] { 0xEB, 0x1D }, 344889);
 
-                Write(fs, new byte[] { 0xEB, 0xCF }, 344918);
+                Write(lego1dll, new byte[] { 0xEB, 0xCF }, 344918);
 
-                Write(fs, new byte[] { 0xC7, 0x44, 0x24, 0x14 }, 344920);
+                Write(lego1dll, new byte[] { 0xC7, 0x44, 0x24, 0x14 }, 344920);
 
-                WriteInt32(fs, (Int32) turn_speed_control.Value);
+                WriteInt32(lego1dll, (Int32)turn_speed_control.Value);
 
-                Write(fs, new byte[] { 0xDA, 0x4C, 0x24, 0x14, 0xEB, 0xD7 });
+                Write(lego1dll, new byte[] { 0xDA, 0x4C, 0x24, 0x14, 0xEB, 0xD7 });
 
                 if (redirect_saves.Checked)
                 {
                     // Write patch to write saves to "AppData" instead of "Program Files"
-                    Write(fs, new byte[] { 0xE9, 0x61, 0x9B, 0x09, 0x00 }, 0x39300);
-                    Write(fs, new byte[] { 0x53, 0xBB, 0x79, 0x3A, 0x0D, 0x10, 0x89, 0x5C, 0x24, 0x08, 0x56, 0x8B, 0x01, 0x57, 0xE9, 0x8C, 0x64, 0xF6, 0xFF }, 0xD2E66);
+                    Write(lego1dll, new byte[] { 0xE9, 0x61, 0x9B, 0x09, 0x00 }, 0x39300);
+                    Write(lego1dll, new byte[] { 0x53, 0xBB, 0x79, 0x3A, 0x0D, 0x10, 0x89, 0x5C, 0x24, 0x08, 0x56, 0x8B, 0x01, 0x57, 0xE9, 0x8C, 0x64, 0xF6, 0xFF }, 0xD2E66);
 
                     // New directory to write in (defaults to "%AppData%/LEGO Island")
                     string new_save_dir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\LEGO Island\\";
                     Directory.CreateDirectory(new_save_dir);
-                    WriteString(fs, new_save_dir);
+                    WriteString(lego1dll, new_save_dir);
                 }
-            }
 
-            using (FileStream fs = File.Open(dir + "/ISLE.EXE", FileMode.Open, FileAccess.Write))
-            {
-                // This operation frees
+                
+                if (stay_active_when_window_is_defocused.Checked)
+                {
+                    // Remove code that writes focus value to memory, effectively keeping it always true - frees up 3 bytes
+                    Write(isleexe, new byte[] { 0x90, 0x90, 0x90 }, 0x1363);
+
+                    // Write DirectSound flags to allow audio to play while the window is defocused
+                    WriteByte(lego1dll, 0x80, 0xB120B);
+                    WriteByte(lego1dll, 0x80, 0x5B96);
+                    WriteByte(lego1dll, 0x80, 0xB1201);
+                    WriteByte(lego1dll, 0x80, 0xADD43);
+                }
+
+                // This operation skips the registry check so full screen/window mode can be set without entering the registry
                 if (run_fullscreen.Checked)
                 {
                     // Write all nops since full screen is enabled by default, frees up 13 bytes that were used to call the registry reading function
-                    Write(fs, new byte[] { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 }, 0x1E03);
+                    Write(isleexe, new byte[] { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 }, 0x1E03);
                 }
                 else
                 {
                     // Write 7 bytes to set the full screen value to 0, frees up 7 bytes of code that were used to call the registry reading function
-                    Write(fs, new byte[] { 0xC7, 0x00, 0x00, 0x00, 0x00, 0x00, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 }, 0x1E03);
+                    Write(isleexe, new byte[] { 0xC7, 0x00, 0x00, 0x00, 0x00, 0x00, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 }, 0x1E03);
                 }
             }
         }
