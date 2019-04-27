@@ -121,7 +121,8 @@ namespace Rebuilder
             tip.SetToolTip(redirect_saves, "Redirect save data to a folder that's writable so games can be saved without administrator privileges.\n\n" +
                 "Saves will be stored in: " + Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\LEGO Island");
             tip.SetToolTip(stay_active_when_window_is_defocused, "Lego Island's default behavior is to pause all operations when defocused. " +
-                "This setting overrides that behavior and keeps Lego Island active even when unfocused.");
+                "This setting overrides that behavior and keeps Lego Island active even when unfocused.\n\n" +
+                "NOTE: This currently only works in windowed mode.");
 
             grid.ResumeLayout(true);
 
