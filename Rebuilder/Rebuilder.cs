@@ -19,6 +19,7 @@ namespace Rebuilder
         Rebuilder() {
             Text = "Lego Island Rebuilder";
             MaximizeBox = false;
+            Icon = Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
 
             TableLayoutPanel grid = new TableLayoutPanel();
             grid.Dock = DockStyle.Fill;
@@ -115,6 +116,11 @@ namespace Rebuilder
                 "7 = Recommended for modern PCs\n" +
                 "20 = Lego Island's default\n\n" +
                 "NOTE: This also changes your movement speed, therefore reducing this will cripple your ability to win races.");
+            tip.SetToolTip(run_fullscreen, "Override the registry check and run Lego Island either full screen or windowed. " +
+                "Allows you to change modes without administrator privileges and registry editing.");
+            tip.SetToolTip(redirect_saves, "Redirect save data to a folder that's writable so games can be saved without administrator privileges.");
+            tip.SetToolTip(stay_active_when_window_is_defocused, "Lego Island's default behavior is to pause all operations when defocused. " +
+                "This setting overrides that behavior and keeps Lego Island active even when unfocused.");
 
             grid.ResumeLayout(true);
 
