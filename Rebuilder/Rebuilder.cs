@@ -12,6 +12,7 @@ namespace Rebuilder
     class Rebuilder : Form
     {
         NumericUpDown turn_speed_control;
+        NumericUpDown movement_speed_control;
         CheckBox redirect_saves;
         CheckBox run_fullscreen;
         CheckBox stay_active_when_window_is_defocused;
@@ -24,7 +25,6 @@ namespace Rebuilder
             TableLayoutPanel grid = new TableLayoutPanel();
             grid.Dock = DockStyle.Fill;
             grid.ColumnCount = 2;
-            grid.RowCount = 4;
             grid.AutoSize = true;
 
             // Create automatic evenly spaced layout
@@ -32,11 +32,6 @@ namespace Rebuilder
             for (int i=0;i<grid.ColumnCount;i++)
             {
                 grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, f));
-            }
-            f = 100 / grid.RowCount;
-            for (int i = 0; i < grid.RowCount; i++)
-            {
-                grid.RowStyles.Add(new ColumnStyle(SizeType.Percent, f));
             }
 
             grid.SuspendLayout();
@@ -76,6 +71,19 @@ namespace Rebuilder
 
             row++;
 
+            Label movement_speed_lbl = new Label();
+            movement_speed_lbl.Text = "Movement Speed:";
+            movement_speed_lbl.Anchor = AnchorStyles.Left | AnchorStyles.Bottom;
+            grid.Controls.Add(movement_speed_lbl, 0, row);
+
+            movement_speed_control = new NumericUpDown();
+            movement_speed_control.Minimum = 0;
+            movement_speed_control.Value = 20;
+            movement_speed_control.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            grid.Controls.Add(movement_speed_control, 1, row);
+
+            row++;
+
             run_fullscreen = new CheckBox();
             run_fullscreen.Checked = true;
             run_fullscreen.Anchor = AnchorStyles.Left | AnchorStyles.Right;
@@ -111,11 +119,13 @@ namespace Rebuilder
             grid.SetColumnSpan(run_button, 2);
 
             ToolTip tip = new ToolTip();
-            tip.SetToolTip(turn_speed_control, "Set the turn speed multiplier.\n\n" +
-                "0 = No movement at all\n" +
+            tip.SetToolTip(turn_speed_control, "Set the turn speed multiplier. Lego Island ties its turn speed to the frame rate which is too fast on modern PCs. Use this value to correct it.\n\n" +
+                "0 = No turning at all\n" +
                 "7 = Recommended for modern PCs\n" +
-                "20 = Lego Island's default\n\n" +
-                "NOTE: This also changes your movement speed, therefore reducing this will cripple your ability to win races.");
+                "20 = Lego Island's default");
+            tip.SetToolTip(movement_speed_control, "Set the movement speed multiplier. This value does not affect other racers so it can be used to cheat (or cripple) your chances in races.\n\n" +
+                "0 = No movement at all\n" +
+                "20 = Lego Island's default");
             tip.SetToolTip(run_fullscreen, "Override the registry check and run Lego Island either full screen or windowed. " +
                 "Allows you to change modes without administrator privileges and registry editing.");
             tip.SetToolTip(redirect_saves, "Redirect save data to a folder that's writable so games can be saved without administrator privileges.\n\n" +
@@ -173,16 +183,12 @@ namespace Rebuilder
             using (FileStream lego1dll = File.Open(dir + "/LEGO1.DLL", FileMode.Open, FileAccess.Write))
             using (FileStream isleexe = File.Open(dir + "/ISLE.EXE", FileMode.Open, FileAccess.Write))
             {
-                // Write turn speed hack (This undoubtedly opens up free bytes for more ASM, check it out at some point maybe)
-                Write(lego1dll, new byte[] { 0xEB, 0x1D }, 344889);
-
-                Write(lego1dll, new byte[] { 0xEB, 0xCF }, 344918);
-
-                Write(lego1dll, new byte[] { 0xC7, 0x44, 0x24, 0x14 }, 344920);
-
+                // Write turn/movement speed hack (this frees up 12 bytes of code)
+                Write(lego1dll, new byte[] { 0x7E, 0x04, 0x2B, 0xD1, 0xEB, 0x0C, 0x89, 0xC8, 0xF7, 0xD8, 0x39, 0xD0, 0x7E, 0x2F, 0x01, 0xCA, 0x29, 0xCE, 0x89, 0x54, 0x24, 0x04, 0xDB, 0x44, 0x24, 0x04, 0x89, 0x74, 0x24, 0x04, 0xDA, 0x74, 0x24, 0x04, 0x3D, 0xF0, 0x00, 0x00, 0x00, 0x74, 0x0A, 0xC7, 0x44, 0x24, 0x04 }, 0x54323);                
                 WriteInt32(lego1dll, (Int32)turn_speed_control.Value);
-
-                Write(lego1dll, new byte[] { 0xDA, 0x4C, 0x24, 0x14, 0xEB, 0xD7 });
+                Write(lego1dll, new byte[] { 0xEB, 0x08, 0xC7, 0x44, 0x24, 0x04 });                
+                WriteInt32(lego1dll, (Int32)movement_speed_control.Value);
+                Write(lego1dll, new byte[] { 0xDA, 0x4C, 0x24, 0x04, 0xD9, 0x5C, 0x24, 0x04, 0xD9, 0x44, 0x24, 0x04, 0x5E, 0x83, 0xC4, 0x04, 0xC2, 0x0C, 0x00, 0xC7, 0x44, 0x24, 0x04, 0x00, 0x00, 0x00, 0x00, 0xD9, 0x44, 0x24, 0x04, 0x5E, 0x83, 0xC4, 0x04, 0xC2, 0x0C, 0x00, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 });
 
                 if (redirect_saves.Checked)
                 {
@@ -288,10 +294,16 @@ namespace Rebuilder
 
             try
             {
-                string[] dll_files = Directory.GetFiles(dir);
-                for (int i=0;i<dll_files.Length;i++)
+                string[] dest_files = Directory.GetFiles(temp_path);
+                for (int i = 0; i < dest_files.Length; i++)
                 {
-                    File.Copy(dll_files[i], temp_path + "/" + Path.GetFileName(dll_files[i]), true);
+                    File.Delete(dest_files[i]);
+                }                    
+
+                string[] src_files = Directory.GetFiles(dir);
+                for (int i=0;i< src_files.Length;i++)
+                {
+                    File.Copy(src_files[i], temp_path + "/" + Path.GetFileName(src_files[i]), true);
                 }
             }
             catch
