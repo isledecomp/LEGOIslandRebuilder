@@ -16,6 +16,12 @@ namespace Rebuilder
         CheckBox redirect_saves;
         CheckBox run_fullscreen;
         CheckBox stay_active_when_window_is_defocused;
+        Button run_button;
+
+        Process p = null;
+
+        string run_button_run = "Run";
+        string run_button_kill = "Kill";
 
         Rebuilder() {
             Text = "Lego Island Rebuilder";
@@ -111,8 +117,8 @@ namespace Rebuilder
 
             row++;
 
-            Button run_button = new Button();
-            run_button.Text = "Run";
+            run_button = new Button();
+            run_button.Text = run_button_run;
             run_button.Anchor = AnchorStyles.Left | AnchorStyles.Right;
             run_button.Click += new System.EventHandler(this.Run);
             grid.Controls.Add(run_button, 0, row);
@@ -236,6 +242,12 @@ namespace Rebuilder
 
         private void Run(object sender, EventArgs e)
         {
+            if (p != null)
+            {
+                p.Kill();
+                return;
+            }
+
             string temp_path = Path.GetTempPath() + "lirebuild";
 
             Directory.CreateDirectory(temp_path);
@@ -325,9 +337,16 @@ namespace Rebuilder
 
             ProcessStartInfo start_info = new ProcessStartInfo(temp_path + "/ISLE.EXE");
             start_info.WorkingDirectory = dir;
-            Process p = Process.Start(start_info);
+            p = Process.Start(start_info);
+            p.EnableRaisingEvents = true;
+            p.Exited += new EventHandler(ProcessExit);
+            run_button.Text = run_button_kill;
+        }
 
-            //Close();
+        private void ProcessExit(object sender, EventArgs e)
+        {
+            run_button.BeginInvoke((MethodInvoker)delegate () { run_button.Text = run_button_run; });
+            p = null;
         }
 
         private void AuthorLinkClick(object sender, System.Windows.Forms.LinkLabelLinkClickedEventArgs e)
