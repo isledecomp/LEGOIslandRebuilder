@@ -288,8 +288,11 @@ namespace Rebuilder
 
             try
             {
-                File.Copy(dir + "/ISLE.EXE", temp_path + "/ISLE.EXE", true);
-                File.Copy(dir + "/LEGO1.DLL", temp_path + "/LEGO1.DLL", true);
+                string[] dll_files = Directory.GetFiles(dir);
+                for (int i=0;i<dll_files.Length;i++)
+                {
+                    File.Copy(dll_files[i], temp_path + "/" + Path.GetFileName(dll_files[i]), true);
+                }
             }
             catch
             {
