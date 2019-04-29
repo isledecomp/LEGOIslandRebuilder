@@ -24,7 +24,7 @@ namespace Rebuilder
         NumericUpDown res_height;
 
         Button run_button;
-        Button advanced_button;
+        CheckBox advanced_button;
 
         Process p = null;
 
@@ -130,12 +130,15 @@ namespace Rebuilder
             run_button.Text = run_button_run;
             run_button.Anchor = AnchorStyles.Left | AnchorStyles.Right;
             run_button.Click += new System.EventHandler(this.Run);
+            run_button.Font = new Font(run_button.Font, FontStyle.Bold);
             grid.Controls.Add(run_button, 0, row);
 
-            advanced_button = new Button();
+            advanced_button = new CheckBox();
             advanced_button.Text = "Advanced";
+            advanced_button.TextAlign = ContentAlignment.MiddleCenter;
+            advanced_button.Appearance = System.Windows.Forms.Appearance.Button;
             advanced_button.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-            advanced_button.Click += new EventHandler(ToggleAdvanced);
+            advanced_button.CheckedChanged += new EventHandler(ToggleAdvanced);
             grid.Controls.Add(advanced_button, 1, row);
 
             grid.ResumeLayout(true);
@@ -313,6 +316,18 @@ namespace Rebuilder
                     // Write 7 bytes to set the full screen value to 0, frees up 7 bytes of code that were used to call the registry reading function
                     Write(isleexe, new byte[] { 0xC7, 0x00, 0x00, 0x00, 0x00, 0x00, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 }, 0x1E03);
                 }
+
+                // INCOMPLETE: Resolution hack:
+                if (override_resolution.Checked)
+                {
+                    // Changes window size
+                    WriteInt32(isleexe, (Int32) res_width.Value, 0xE848);
+                    WriteInt32(isleexe, (Int32) res_height.Value, 0xE84C);
+
+                    // Changes D3D render size
+                    WriteInt32(isleexe, (Int32)res_width.Value-1, 0x4D0);
+                    WriteInt32(isleexe, (Int32)res_height.Value-1, 0x4D7);
+                }
             }
         }
 
@@ -323,7 +338,7 @@ namespace Rebuilder
 
         private void ToggleAdvanced(object sender, EventArgs e)
         {
-            advanced_grid.Visible = !advanced_grid.Visible;
+            advanced_grid.Visible = advanced_button.Checked;
             CenterToScreen();
         }
 
@@ -419,14 +434,20 @@ namespace Rebuilder
 
             Patch(temp_path);
 
-            /*
             // Set new EXE's compatibility mode to 256-colors
-            using (RegistryKey key = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers", true))
+            using (RegistryKey key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers", true))
             {
                 key.CreateSubKey(temp_path + "\\ISLE.EXE");
-                key.SetValue(temp_path + "\\ISLE.EXE", "DWM8And16BitMitigation");
+                
+                if (run_fullscreen.Checked)
+                {
+                    key.SetValue(temp_path + "\\ISLE.EXE", "");
+                }
+                else
+                {
+                    key.SetValue(temp_path + "\\ISLE.EXE", "256COLOR");
+                }
             }
-            */
 
             ProcessStartInfo start_info = new ProcessStartInfo(temp_path + "/ISLE.EXE");
             start_info.WorkingDirectory = dir;
