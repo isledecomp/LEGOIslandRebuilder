@@ -11,12 +11,20 @@ namespace Rebuilder
 {
     class Rebuilder : Form
     {
+        TableLayoutPanel advanced_grid;
+
         NumericUpDown turn_speed_control;
         NumericUpDown movement_speed_control;
         CheckBox redirect_saves;
         CheckBox run_fullscreen;
         CheckBox stay_active_when_window_is_defocused;
+
+        CheckBox override_resolution;
+        NumericUpDown res_width;
+        NumericUpDown res_height;
+
         Button run_button;
+        Button advanced_button;
 
         Process p = null;
 
@@ -32,18 +40,19 @@ namespace Rebuilder
             grid.Dock = DockStyle.Fill;
             grid.ColumnCount = 2;
             grid.AutoSize = true;
-
+            
             // Create automatic evenly spaced layout
-            float f = 100 / grid.ColumnCount;
+            float f = 100f / grid.ColumnCount;
             for (int i=0;i<grid.ColumnCount;i++)
             {
                 grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, f));
             }
 
+            // Build standard layout
             grid.SuspendLayout();
 
             int row = 0;
-
+            
             Label title = new Label();
             title.Anchor = AnchorStyles.Left | AnchorStyles.Right;
             title.Text = "Lego Island Rebuilder";
@@ -122,8 +131,81 @@ namespace Rebuilder
             run_button.Anchor = AnchorStyles.Left | AnchorStyles.Right;
             run_button.Click += new System.EventHandler(this.Run);
             grid.Controls.Add(run_button, 0, row);
-            grid.SetColumnSpan(run_button, 2);
 
+            advanced_button = new Button();
+            advanced_button.Text = "Advanced";
+            advanced_button.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            advanced_button.Click += new EventHandler(ToggleAdvanced);
+            grid.Controls.Add(advanced_button, 1, row);
+
+            grid.ResumeLayout(true);
+
+            // Build advanced layout
+            // Create automatic evenly spaced layout
+            advanced_grid = new TableLayoutPanel();
+            advanced_grid.Visible = false;
+            advanced_grid.Dock = DockStyle.Right;
+            advanced_grid.ColumnCount = 2;
+            advanced_grid.AutoSize = true;
+
+            f = 100f / advanced_grid.ColumnCount;
+            for (int i = 0; i < advanced_grid.ColumnCount; i++)
+            {
+                advanced_grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, f));
+            }
+
+            advanced_grid.SuspendLayout();
+
+            row = 0;
+
+            override_resolution = new CheckBox();
+            override_resolution.Text = "Override Resolution";
+            override_resolution.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            override_resolution.CheckedChanged += new EventHandler(ToggleOverrideResolution);
+            advanced_grid.Controls.Add(override_resolution, 0, row);
+
+            row++;
+
+            Label res_width_lbl = new Label();
+            res_width_lbl.Text = "Width:";
+            res_width_lbl.Anchor = AnchorStyles.Left | AnchorStyles.Bottom;
+            advanced_grid.Controls.Add(res_width_lbl, 0, row);
+
+            res_width = new NumericUpDown();
+            res_width.Enabled = false;
+            res_width.Minimum = 0;
+            res_width.Maximum = int.MaxValue;
+            res_width.Value = 640;            
+            res_width.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            advanced_grid.Controls.Add(res_width, 1, row);
+
+            row++;
+
+            Label res_height_lbl = new Label();
+            res_height_lbl.Text = "Height:";
+            res_height_lbl.Anchor = AnchorStyles.Left | AnchorStyles.Bottom;
+            advanced_grid.Controls.Add(res_height_lbl, 0, row);
+
+            res_height = new NumericUpDown();
+            res_height.Enabled = false;
+            res_height.Minimum = 0;
+            res_height.Maximum = int.MaxValue;
+            res_height.Value = 480;
+            res_height.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            advanced_grid.Controls.Add(res_height, 1, row);
+
+            row++;
+
+            Label advanced_warning_lbl = new Label();
+            advanced_warning_lbl.Text = "WARNING: These features are experimental and often incomplete. Use at your own risk.";
+            advanced_warning_lbl.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            advanced_warning_lbl.Font = new Font(advanced_warning_lbl.Font, FontStyle.Bold);
+            advanced_grid.Controls.Add(advanced_warning_lbl, 0, row);
+            advanced_grid.SetColumnSpan(advanced_warning_lbl, 2);
+
+            advanced_grid.ResumeLayout(true);
+
+            // Set up tooltips
             ToolTip tip = new ToolTip();
             tip.SetToolTip(turn_speed_control, "Set the turn speed multiplier. Lego Island ties its turn speed to the frame rate which is too fast on modern PCs. Use this value to correct it.\n\n" +
                 "0 = No turning at all\n" +
@@ -140,9 +222,8 @@ namespace Rebuilder
                 "This setting overrides that behavior and keeps Lego Island active even when unfocused.\n\n" +
                 "NOTE: This currently only works in windowed mode.");
 
-            grid.ResumeLayout(true);
-
             Controls.Add(grid);
+            Controls.Add(advanced_grid);
 
             AutoSize = true;
             AutoSizeMode = AutoSizeMode.GrowAndShrink;
@@ -238,6 +319,18 @@ namespace Rebuilder
         private bool IsValidDir(string dir)
         {
             return (File.Exists(dir + "/ISLE.EXE") && File.Exists(dir + "/LEGO1.DLL"));
+        }
+
+        private void ToggleAdvanced(object sender, EventArgs e)
+        {
+            advanced_grid.Visible = !advanced_grid.Visible;
+            CenterToScreen();
+        }
+
+        private void ToggleOverrideResolution(Object sender, EventArgs e)
+        {
+            res_width.Enabled = override_resolution.Checked;
+            res_height.Enabled = override_resolution.Checked;
         }
 
         private void Run(object sender, EventArgs e)
