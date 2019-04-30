@@ -80,7 +80,8 @@ namespace Rebuilder
 
             turn_speed_control = new NumericUpDown();
             turn_speed_control.Minimum = 0;
-            turn_speed_control.Value = 20;
+            turn_speed_control.Value = 1;
+            turn_speed_control.DecimalPlaces = 2;
             turn_speed_control.Anchor = AnchorStyles.Left | AnchorStyles.Right;
             grid.Controls.Add(turn_speed_control, 1, row);
 
@@ -93,7 +94,8 @@ namespace Rebuilder
 
             movement_speed_control = new NumericUpDown();
             movement_speed_control.Minimum = 0;
-            movement_speed_control.Value = 20;
+            movement_speed_control.Value = 1;
+            movement_speed_control.DecimalPlaces = 2;
             movement_speed_control.Anchor = AnchorStyles.Left | AnchorStyles.Right;
             grid.Controls.Add(movement_speed_control, 1, row);
 
@@ -211,12 +213,12 @@ namespace Rebuilder
             // Set up tooltips
             ToolTip tip = new ToolTip();
             tip.SetToolTip(turn_speed_control, "Set the turn speed multiplier. Lego Island ties its turn speed to the frame rate which is too fast on modern PCs. Use this value to correct it.\n\n" +
-                "0 = No turning at all\n" +
-                "7 = Recommended for modern PCs\n" +
-                "20 = Lego Island's default");
+                "0.00 = No turning at all\n" +
+                "0.35 = Recommended for modern PCs\n" +
+                "1.00 = Lego Island's default");
             tip.SetToolTip(movement_speed_control, "Set the movement speed multiplier. This value does not affect other racers so it can be used to cheat (or cripple) your chances in races.\n\n" +
-                "0 = No movement at all\n" +
-                "20 = Lego Island's default");
+                "0.00 = No movement at all\n" +
+                "1.00 = Lego Island's default");
             tip.SetToolTip(run_fullscreen, "Override the registry check and run Lego Island either full screen or windowed. " +
                 "Allows you to change modes without administrator privileges and registry editing.");
             tip.SetToolTip(redirect_saves, "Redirect save data to a folder that's writable so games can be saved without administrator privileges.\n\n" +
@@ -262,6 +264,12 @@ namespace Rebuilder
             Write(fs, int_bytes, pos);
         }
 
+        private void WriteFloat(FileStream fs, float f, long pos = -1)
+        {
+            byte[] f_bytes = BitConverter.GetBytes(f);
+            Write(fs, f_bytes, pos);
+        }
+
         private void WriteString(FileStream fs, string s, long pos = -1)
         {
             byte[] str_bytes = System.Text.Encoding.ASCII.GetBytes(s);
@@ -275,10 +283,10 @@ namespace Rebuilder
             {
                 // Write turn/movement speed hack (this frees up 12 bytes of code)
                 Write(lego1dll, new byte[] { 0x7E, 0x04, 0x2B, 0xD1, 0xEB, 0x0C, 0x89, 0xC8, 0xF7, 0xD8, 0x39, 0xD0, 0x7E, 0x2F, 0x01, 0xCA, 0x29, 0xCE, 0x89, 0x54, 0x24, 0x04, 0xDB, 0x44, 0x24, 0x04, 0x89, 0x74, 0x24, 0x04, 0xDA, 0x74, 0x24, 0x04, 0x3D, 0xF0, 0x00, 0x00, 0x00, 0x74, 0x0A, 0xC7, 0x44, 0x24, 0x04 }, 0x54323);                
-                WriteInt32(lego1dll, (Int32)turn_speed_control.Value);
-                Write(lego1dll, new byte[] { 0xEB, 0x08, 0xC7, 0x44, 0x24, 0x04 });                
-                WriteInt32(lego1dll, (Int32)movement_speed_control.Value);
-                Write(lego1dll, new byte[] { 0xDA, 0x4C, 0x24, 0x04, 0xD9, 0x5C, 0x24, 0x04, 0xD9, 0x44, 0x24, 0x04, 0x5E, 0x83, 0xC4, 0x04, 0xC2, 0x0C, 0x00, 0xC7, 0x44, 0x24, 0x04, 0x00, 0x00, 0x00, 0x00, 0xD9, 0x44, 0x24, 0x04, 0x5E, 0x83, 0xC4, 0x04, 0xC2, 0x0C, 0x00, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 });
+                WriteFloat(lego1dll, (float)turn_speed_control.Value);
+                Write(lego1dll, new byte[] { 0xEB, 0x08, 0xC7, 0x44, 0x24, 0x04 });
+                WriteFloat(lego1dll, (float)movement_speed_control.Value);
+                Write(lego1dll, new byte[] { 0xD8, 0x4C, 0x24, 0x04, 0xD8, 0x4C, 0x24, 0x14, 0xD9, 0x5C, 0x24, 0x04, 0xD9, 0x44, 0x24, 0x04, 0x5E, 0x83, 0xC4, 0x04, 0xC2, 0x0C, 0x00, 0xC7, 0x44, 0x24, 0x04, 0x00, 0x00, 0x00, 0x00, 0xD9, 0x44, 0x24, 0x04, 0x5E, 0x83, 0xC4, 0x04, 0xC2, 0x0C, 0x00, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 });
 
                 if (redirect_saves.Checked)
                 {
