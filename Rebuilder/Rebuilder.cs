@@ -449,17 +449,27 @@ namespace Rebuilder
                 
                 if (run_fullscreen.Checked)
                 {
-                    key.SetValue(temp_path + "\\ISLE.EXE", "");
+                    key.SetValue(temp_path + "\\ISLE.EXE", "DWM8And16BitMitigation");
                 }
                 else
                 {
-                    key.SetValue(temp_path + "\\ISLE.EXE", "256COLOR");
+                    key.SetValue(temp_path + "\\ISLE.EXE", "DWM8And16BitMitigation 256COLOR");
                 }
             }
 
             ProcessStartInfo start_info = new ProcessStartInfo(temp_path + "/ISLE.EXE");
             start_info.WorkingDirectory = dir;
-            p = Process.Start(start_info);
+
+            try
+            {
+                p = Process.Start(start_info);
+            }
+            catch
+            {
+                p = null;
+                return;
+            }
+            
             p.EnableRaisingEvents = true;
             p.Exited += new EventHandler(ProcessExit);
             run_button.Text = run_button_kill;
