@@ -283,7 +283,7 @@ namespace Rebuilder
 
         private bool IncompatibleBuildMessage(string incompatibilities)
         {
-            return (MessageBox.Show("The following patches you've chosen are not compatible with this version of LEGO Island:\n\n" + incompatibilities + "\nContinue?", "Compatibility", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes);
+            return (MessageBox.Show("The following patches you've chosen are not compatible with this version of LEGO Island:\n\n" + incompatibilities + "\nContinue without them?", "Compatibility", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes);
         }
 
         private bool Patch(string dir)
@@ -296,18 +296,7 @@ namespace Rebuilder
                 // Crude check if the build is September or August                
                 lego1dll.Position = 0x54083;
                 bool aug_build = (lego1dll.ReadByte() == 0x7E);
-
-                /*
-                if (aug_build)
-                {
-                    Console.WriteLine("August build detected");
-                }
-                else
-                {
-                    Console.WriteLine("September build detected");
-                }
-                */
-
+                
                 // Write turn/movement speed hack (this frees up 12 bytes of code)
                 long turn_speed_offset = aug_build ? 0x54083 : 0x54323;                
                 Write(lego1dll, new byte[] { 0x7E, 0x04, 0x2B, 0xD1, 0xEB, 0x0C, 0x89, 0xC8, 0xF7, 0xD8, 0x39, 0xD0, 0x7E, 0x2F, 0x01, 0xCA, 0x29, 0xCE, 0x89, 0x54, 0x24, 0x04, 0xDB, 0x44, 0x24, 0x04, 0x89, 0x74, 0x24, 0x04, 0xDA, 0x74, 0x24, 0x04, 0x3D, 0xF0, 0x00, 0x00, 0x00, 0x74, 0x0A, 0xC7, 0x44, 0x24, 0x04 }, turn_speed_offset);                
@@ -315,34 +304,10 @@ namespace Rebuilder
                 Write(lego1dll, new byte[] { 0xEB, 0x08, 0xC7, 0x44, 0x24, 0x04 });
                 WriteFloat(lego1dll, (float)movement_speed_control.Value);
                 Write(lego1dll, new byte[] { 0xD8, 0x4C, 0x24, 0x04, 0xD8, 0x4C, 0x24, 0x14, 0xD9, 0x5C, 0x24, 0x04, 0xD9, 0x44, 0x24, 0x04, 0x5E, 0x83, 0xC4, 0x04, 0xC2, 0x0C, 0x00, 0xC7, 0x44, 0x24, 0x04, 0x00, 0x00, 0x00, 0x00, 0xD9, 0x44, 0x24, 0x04, 0x5E, 0x83, 0xC4, 0x04, 0xC2, 0x0C, 0x00, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 });
-
-                //
-                // TODO: The redirect_saves and run_fullscreen hacks could probably be done easier by redirecting Lego Island's registry reading to HKCU rather than HKLM.
-                // We'd free up a lot of bytes of code that way (at least with redirect_saves).
-                //
-                // Also find a solution for the August build
-                //
-
-                if (redirect_saves.Checked)
-                {
-                    if (aug_build)
-                    {
-                        incompatibilities += redirect_saves.Text + "\n";
-                    }
-                    else
-                    {
-                        // Write patch to write saves to "AppData" instead of "Program Files"
-                        Write(lego1dll, new byte[] { 0xE9, 0x61, 0x9B, 0x09, 0x00 }, 0x39300);
-                        Write(lego1dll, new byte[] { 0x53, 0xBB, 0x79, 0x3A, 0x0D, 0x10, 0x89, 0x5C, 0x24, 0x08, 0x56, 0x8B, 0x01, 0x57, 0xE9, 0x8C, 0x64, 0xF6, 0xFF }, 0xD2E66);
-
-                        // New directory to write in (defaults to "%AppData%/LEGO Island")
-                        string new_save_dir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\LEGO Island\\";
-                        Directory.CreateDirectory(new_save_dir);
-                        WriteString(lego1dll, new_save_dir);
-                    }                    
-                }
-
                 
+                // Patch EXE to read from HKCU instead of HKLM
+                WriteByte(isleexe, 0x01, 0x1B5F);
+
                 if (stay_active_when_window_is_defocused.Checked)
                 {
                     // Remove code that writes focus value to memory, effectively keeping it always true - frees up 3 bytes
@@ -355,18 +320,6 @@ namespace Rebuilder
                     WriteByte(lego1dll, 0x80, aug_build ? 0xAD7D3 : 0xADD43);
                 }
 
-                // This operation skips the registry check so full screen/window mode can be set without entering the registry
-                if (run_fullscreen.Checked)
-                {
-                    // Write all nops since full screen is enabled by default, frees up 13 bytes that were used to call the registry reading function
-                    Write(isleexe, new byte[] { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 }, 0x1E03);
-                }
-                else
-                {
-                    // Write 7 bytes to set the full screen value to 0, frees up 7 bytes of code that were used to call the registry reading function
-                    Write(isleexe, new byte[] { 0xC7, 0x00, 0x00, 0x00, 0x00, 0x00, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 }, 0x1E03);
-                }
-
                 // INCOMPLETE: Resolution hack:
                 if (override_resolution.Checked)
                 {
@@ -377,6 +330,29 @@ namespace Rebuilder
                     // Changes D3D render size
                     WriteInt32(isleexe, (Int32)res_width.Value-1, 0x4D0);
                     WriteInt32(isleexe, (Int32)res_height.Value-1, 0x4D7);
+                }
+
+                if (aug_build && redirect_saves.Checked)
+                {
+                    incompatibilities += redirect_saves.Text + "\n";
+                }
+            }
+            
+            using (RegistryKey src = Registry.LocalMachine.OpenSubKey("SOFTWARE\\WOW6432Node\\Mindscape\\LEGO Island", false))
+            using (RegistryKey dst = Registry.CurrentUser.CreateSubKey("Software\\Mindscape\\LEGO Island"))
+            {
+                // Copy config data from HKLM to HKCU
+                CopyRegistryKey(src, dst);
+
+                // Set full screen value
+                dst.SetValue("Full Screen", run_fullscreen.Checked ? "YES" : "NO");
+
+                // Redirect save path
+                if (redirect_saves.Checked)
+                {
+                    string new_save_dir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\LEGO Island\\";
+                    Directory.CreateDirectory(new_save_dir);
+                    dst.SetValue("savepath", new_save_dir);
                 }
             }
 
@@ -398,6 +374,25 @@ namespace Rebuilder
         {
             res_width.Enabled = override_resolution.Checked;
             res_height.Enabled = override_resolution.Checked;
+        }
+
+        private void CopyRegistryKey(RegistryKey src, RegistryKey dst)
+        {
+            // copy the values
+            foreach (var name in src.GetValueNames())
+            {
+                dst.SetValue(name, src.GetValue(name), src.GetValueKind(name));
+            }
+
+            // copy the subkeys
+            foreach (var name in src.GetSubKeyNames())
+            {
+                using (var srcSubKey = src.OpenSubKey(name, false))
+                {
+                    var dstSubKey = dst.CreateSubKey(name);
+                    CopyRegistryKey(srcSubKey, dstSubKey);
+                }
+            }
         }
 
         private void Run(object sender, EventArgs e)
