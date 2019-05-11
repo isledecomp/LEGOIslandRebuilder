@@ -26,13 +26,23 @@ namespace Rebuilder
         Button run_button;
         CheckBox advanced_button;
 
+        MusicInjector music_injector = new MusicInjector();
+        Button music_replacement_btn = new Button();
+
         Process p = null;
 
         string run_button_run = "Run";
         string run_button_kill = "Kill";
 
+        public static string[] standard_hdd_dirs = {
+                "C:/Program Files (x86)/LEGO Island",
+                "C:/Program Files/LEGO Island",
+                "/Program Files (x86)/LEGO Island",
+                "/Program Files/LEGO Island"
+            };
+
         Rebuilder() {
-            Text = "Lego Island Rebuilder";
+            Text = "LEGO Island Rebuilder";
             MaximizeBox = false;
             Icon = Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
 
@@ -55,7 +65,7 @@ namespace Rebuilder
             
             Label title = new Label();
             title.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-            title.Text = "Lego Island Rebuilder";
+            title.Text = "LEGO Island Rebuilder";
             title.Font = new Font(title.Font, FontStyle.Bold);
             title.TextAlign = ContentAlignment.MiddleCenter;
             grid.Controls.Add(title, 0, row);
@@ -67,7 +77,7 @@ namespace Rebuilder
             subtitle.Anchor = AnchorStyles.Left | AnchorStyles.Right;
             subtitle.Text = "by MattKC (itsmattkc.com)";
             subtitle.TextAlign = ContentAlignment.MiddleCenter;
-            subtitle.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(AuthorLinkClick);
+            subtitle.LinkClicked += new LinkLabelLinkClickedEventHandler(AuthorLinkClick);
             grid.Controls.Add(subtitle, 0, row);
             grid.SetColumnSpan(subtitle, 2);
 
@@ -98,6 +108,18 @@ namespace Rebuilder
             movement_speed_control.DecimalPlaces = 2;
             movement_speed_control.Anchor = AnchorStyles.Left | AnchorStyles.Right;
             grid.Controls.Add(movement_speed_control, 1, row);
+
+            row++;
+
+            Label music_replacement_lbl = new Label();
+            music_replacement_lbl.Text = "Music Injection:";
+            music_replacement_lbl.Anchor = AnchorStyles.Left | AnchorStyles.Bottom;
+            grid.Controls.Add(music_replacement_lbl, 0, row);
+
+            music_replacement_btn.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            UpdateMusicInjectorBtnText();
+            music_replacement_btn.Click += new EventHandler(this.ShowMusicInjectorForm);
+            grid.Controls.Add(music_replacement_btn, 1, row);
 
             row++;
 
@@ -212,19 +234,19 @@ namespace Rebuilder
 
             // Set up tooltips
             ToolTip tip = new ToolTip();
-            tip.SetToolTip(turn_speed_control, "Set the turn speed multiplier. Lego Island ties its turn speed to the frame rate which is too fast on modern PCs. Use this value to correct it.\n\n" +
+            tip.SetToolTip(turn_speed_control, "Set the turn speed multiplier. LEGO Island ties its turn speed to the frame rate which is too fast on modern PCs. Use this value to correct it.\n\n" +
                 "0.00 = No turning at all\n" +
                 "0.35 = Recommended for modern PCs\n" +
-                "1.00 = Lego Island's default");
+                "1.00 = LEGO Island's default");
             tip.SetToolTip(movement_speed_control, "Set the movement speed multiplier. This value does not affect other racers so it can be used to cheat (or cripple) your chances in races.\n\n" +
                 "0.00 = No movement at all\n" +
-                "1.00 = Lego Island's default");
-            tip.SetToolTip(run_fullscreen, "Override the registry check and run Lego Island either full screen or windowed. " +
+                "1.00 = LEGO Island's default");
+            tip.SetToolTip(run_fullscreen, "Override the registry check and run LEGO Island either full screen or windowed. " +
                 "Allows you to change modes without administrator privileges and registry editing.");
             tip.SetToolTip(redirect_saves, "Redirect save data to a folder that's writable so games can be saved without administrator privileges.\n\n" +
                 "Saves will be stored in: " + Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\LEGO Island");
-            tip.SetToolTip(stay_active_when_window_is_defocused, "Lego Island's default behavior is to pause all operations when defocused. " +
-                "This setting overrides that behavior and keeps Lego Island active even when unfocused.\n\n" +
+            tip.SetToolTip(stay_active_when_window_is_defocused, "LEGO Island's default behavior is to pause all operations when defocused. " +
+                "This setting overrides that behavior and keeps LEGO Island active even when unfocused.\n\n" +
                 "NOTE: This currently only works in windowed mode.");
 
             Controls.Add(grid);
@@ -286,7 +308,7 @@ namespace Rebuilder
             return (MessageBox.Show("The following patches you've chosen are not compatible with this version of LEGO Island:\n\n" + incompatibilities + "\nContinue without them?", "Compatibility", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes);
         }
 
-        private bool Patch(string dir)
+        private bool Patch(string source_dir, string dir)
         {
             string incompatibilities = "";
 
@@ -318,6 +340,33 @@ namespace Rebuilder
                     WriteByte(lego1dll, 0x80, 0x5B96);
                     WriteByte(lego1dll, 0x80, aug_build ? 0xB48F1 : 0xB1201);
                     WriteByte(lego1dll, 0x80, aug_build ? 0xAD7D3 : 0xADD43);
+                }
+
+                // Redirect JUKEBOX.SI if we're inserting music
+                if (music_injector.ReplaceCount() > 0)
+                {
+                    Uri uri1 = new Uri(dir + "/jukebox");
+                    Uri uri2 = new Uri(source_dir + "/ISLE.EXE");
+                    Uri relative = uri2.MakeRelativeUri(uri1);
+                    string jukebox_path = "\\" + relative.ToString().Replace("/", "\\");
+                    //Console.WriteLine(jukebox_path);
+
+                    if (aug_build)
+                    {
+                        WriteByte(lego1dll, 0xF6, 0x51EF5);
+                        WriteByte(lego1dll, 0x34);
+                        WriteByte(lego1dll, 0x0D);
+                        WriteByte(lego1dll, 0x10);
+                    }
+                    else
+                    {
+                        WriteByte(lego1dll, 0x66, 0x52195);
+                        WriteByte(lego1dll, 0x3A);
+                        WriteByte(lego1dll, 0x0D);
+                        WriteByte(lego1dll, 0x10);
+                    }                    
+
+                    WriteString(lego1dll, jukebox_path, aug_build ? 0xD28F6 : 0xD2E66);
                 }
 
                 // INCOMPLETE: Resolution hack:
@@ -364,6 +413,25 @@ namespace Rebuilder
             return (File.Exists(dir + "/ISLE.EXE") && File.Exists(dir + "/LEGO1.DLL"));
         }
 
+        private void ShowMusicInjectorForm(object sender, EventArgs e)
+        {
+            //music_changed = true;
+            music_injector.ShowDialog();
+            UpdateMusicInjectorBtnText();
+        }
+
+        private void UpdateMusicInjectorBtnText()
+        {
+            int count = music_injector.ReplaceCount();
+            string btn_text = count + " song";
+            if (count != 1)
+            {
+                btn_text += "s";
+            }
+            btn_text += " replaced";
+            music_replacement_btn.Text = btn_text;
+        }
+
         private void ToggleAdvanced(object sender, EventArgs e)
         {
             advanced_grid.Visible = advanced_button.Checked;
@@ -403,23 +471,15 @@ namespace Rebuilder
                 return;
             }
 
-            string temp_path = Path.GetTempPath() + "lirebuild";
-
+            string temp_path = Path.GetTempPath() + "lire";
             Directory.CreateDirectory(temp_path);
 
-            string[] possible_dirs = {
-                "C:/Program Files (x86)/Lego Island",
-                "C:/Program Files/Lego Island",
-                "/Program Files (x86)/Lego Island",
-                "/Program Files/Lego Island"
-            };
-
             string dir = "";
-            for (int i=0;i<possible_dirs.Length;i++)
+            for (int i=0;i<standard_hdd_dirs.Length;i++)
             {
-                if (IsValidDir(possible_dirs[i]))
+                if (IsValidDir(standard_hdd_dirs[i]))
                 {
-                    dir = possible_dirs[i];
+                    dir = standard_hdd_dirs[i];
                     break;
                 }
             }
@@ -429,7 +489,7 @@ namespace Rebuilder
                 using (OpenFileDialog ofd = new OpenFileDialog())
                 {
                     ofd.Filter = "ISLE.EXE|ISLE.EXE";
-                    ofd.Title = "Where is Lego Island installed?";
+                    ofd.Title = "Where is LEGO Island installed?";
 
                     while (true)
                     {
@@ -479,13 +539,19 @@ namespace Rebuilder
                 return;
             }
 
-            if (!Patch(temp_path)) return;
+            if (!Patch(dir, temp_path)) return;
+
+            // Perform music insertion if necessary
+            if (music_injector.ReplaceCount() > 0)
+            {
+                music_injector.Insert(temp_path + "/JUKEBOX.SI");
+            }
 
             // Set new EXE's compatibility mode to 256-colors
             using (RegistryKey key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers", true))
             {
                 key.CreateSubKey(temp_path + "\\ISLE.EXE");
-                
+
                 if (run_fullscreen.Checked)
                 {
                     key.SetValue(temp_path + "\\ISLE.EXE", "HIGHDPIAWARE DWM8And16BitMitigation");
@@ -520,9 +586,8 @@ namespace Rebuilder
             p = null;
         }
 
-        private void AuthorLinkClick(object sender, System.Windows.Forms.LinkLabelLinkClickedEventArgs e)
+        private void AuthorLinkClick(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            ((LinkLabel)sender).LinkVisited = true;
             Process.Start("http://www.itsmattkc.com/");
         }
 

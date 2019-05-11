@@ -45,6 +45,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="MusicInjector.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Rebuilder.cs">
       <SubType>Form</SubType>
     </Compile>
