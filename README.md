@@ -4,7 +4,7 @@ A launcher and mod/patch tool for the 1997 video game *LEGO Island*.
 
 ![Screenshot](https://i.imgur.com/o9wN3B9.png)
 
-[Homepage](http://itsmattkc.com/rebuilder) | [Download](https://github.com/itsmattkc/LEGOIslandRebuilder/releases/download/continuous/Rebuilder.exe) | [Patreon](https://www.patreon.com/mattkc) | [Discord](https://discord.gg/X6NcmXF)
+[Homepage](http://itsmattkc.com/rebuilder) | [Download](https://github.com/itsmattkc/LEGOIslandRebuilder/releases/download/continuous/Rebuilder.exe) | [Patreon](https://www.patreon.com/mattkc)
 
 **Supports Windows 98+** (requires .NET Framework 2.0+).
 
