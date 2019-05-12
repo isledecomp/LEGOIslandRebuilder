@@ -35,6 +35,8 @@ namespace Rebuilder
         string run_button_run = "Run";
         string run_button_kill = "Kill";
 
+        bool aug_build = false;
+
         public static string[] standard_hdd_dirs = {
                 "C:/Program Files (x86)/LEGO Island",
                 "C:/Program Files/LEGO Island",
@@ -321,7 +323,7 @@ namespace Rebuilder
             {
                 // Crude check if the build is September or August                
                 lego1dll.Position = 0x54083;
-                bool aug_build = (lego1dll.ReadByte() == 0x7E);
+                aug_build = (lego1dll.ReadByte() == 0x7E);
                 
                 // Write turn/movement speed hack (this frees up 12 bytes of code)
                 long turn_speed_offset = aug_build ? 0x54083 : 0x54323;              
@@ -577,14 +579,19 @@ namespace Rebuilder
                 {
                     key.CreateSubKey(temp_path + "\\ISLE.EXE");
 
-                    if (run_fullscreen.Checked)
+                    string compat_string = "HIGHDPIAWARE DWM8And16BitMitigation";
+
+                    if (!run_fullscreen.Checked)
                     {
-                        key.SetValue(temp_path + "\\ISLE.EXE", "HIGHDPIAWARE DWM8And16BitMitigation");
+                        compat_string += " 256COLOR";
                     }
-                    else
+
+                    if (!redirect_saves.Checked || aug_build)
                     {
-                        key.SetValue(temp_path + "\\ISLE.EXE", "HIGHDPIAWARE DWM8And16BitMitigation 256COLOR");
+                        compat_string += " RUNASADMIN";
                     }
+
+                    key.SetValue(temp_path + "\\ISLE.EXE", compat_string);
                 }
             }
 
@@ -753,7 +760,6 @@ namespace Rebuilder
             stream.WriteEndDocument();
 
             stream.Close();
-
         }
 
         [STAThread]
