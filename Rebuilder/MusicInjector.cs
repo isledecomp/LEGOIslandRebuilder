@@ -5,6 +5,7 @@ using System.Windows.Forms;
 using System.IO;
 using System.Drawing;
 using System.Media;
+using System.Xml;
 using Microsoft.Win32;
 
 namespace Rebuilder
@@ -20,6 +21,9 @@ namespace Rebuilder
         SoundPlayer sound_player = new SoundPlayer();
         int last_played_row = -1;
 
+        List<string> replace_src = new List<string>();
+        List<string> replace_dst = new List<string>();
+
         public MusicInjector()
         {
             Text = "Music Injector";
@@ -27,6 +31,7 @@ namespace Rebuilder
             Visible = false;
             Width = 720;
             Height = 540;
+            CenterToScreen();
 
             table.ReadOnly = true;
             table.RowHeadersVisible = false;
@@ -80,13 +85,12 @@ namespace Rebuilder
 
         private void OnClose(object sender, FormClosingEventArgs e)
         {
+            ConvertTableToReplaceData();
             sound_player.Stop();
         }
 
-        private void OnShow(object sender, EventArgs e)
+        private bool Prepare()
         {
-            CenterToScreen();
-
             if (string.IsNullOrEmpty(jukebox_si_path))
             {
                 FindJukeboxSI();
@@ -99,12 +103,22 @@ namespace Rebuilder
                                         MessageBoxButtons.OK,
                                         MessageBoxIcon.Error
                                     );
-                    Close();
+                    return false;
                 }
                 else
                 {
                     Extract();
                 }
+            }
+            return true;
+        }
+
+        private void OnShow(object sender, EventArgs e)
+        {
+            if (!Prepare())
+            {
+                Close();
+                return;
             }
         }
 
@@ -282,10 +296,8 @@ namespace Rebuilder
                             ofd.Filter = "WAVE Audio (*.wav)|*.wav";
                             if (ofd.ShowDialog() == DialogResult.OK)
                             {
-                                Font f = new Font(table.Font, FontStyle.Bold);
-
-                                table.Rows[e.RowIndex].Cells[0].Style.Font = f;
-                                table.Rows[e.RowIndex].Cells[1].Style.Font = f;
+                                SetCellBold(table.Rows[e.RowIndex].Cells[0]);
+                                SetCellBold(table.Rows[e.RowIndex].Cells[1]);
 
                                 table.Rows[e.RowIndex].Cells[1].Value = ofd.FileName;
                             }
@@ -293,8 +305,8 @@ namespace Rebuilder
                     }
                     else
                     {
-                        table.Rows[e.RowIndex].Cells[0].Style.Font = table.Font;
-                        table.Rows[e.RowIndex].Cells[1].Style.Font = table.Font;
+                        SetCellNormal(table.Rows[e.RowIndex].Cells[0]);
+                        SetCellNormal(table.Rows[e.RowIndex].Cells[1]);
 
                         table.Rows[e.RowIndex].Cells[1].Value = filenames[e.RowIndex];
                     }
@@ -306,7 +318,7 @@ namespace Rebuilder
         private void Extract()
         {
             int file_count = 0;
-            temp_extract_path = Path.GetTempPath() + "lire/jukebox";
+            temp_extract_path = Path.GetTempPath() + "LEGOIslandRebuilder/jukebox";
             Directory.CreateDirectory(temp_extract_path);
 
             using (FileStream stream = new FileStream(jukebox_si_path, FileMode.Open, FileAccess.Read))
@@ -463,7 +475,28 @@ namespace Rebuilder
                 }
             }
 
+            // Convert replace data to table
+            for (int i=0;i<replace_src.Count;i++)
+            {
+                int index = filenames.IndexOf(replace_dst[i]);
+
+                table.Rows[index].Cells[1].Value = replace_src[i];
+
+                SetCellBold(table.Rows[index].Cells[0]);
+                SetCellBold(table.Rows[index].Cells[1]);
+            }
+
             //Console.WriteLine("\nDone! Extracted " + file_count + " files\n");
+        }
+
+        static void SetCellNormal(DataGridViewCell cell)
+        {
+            cell.Style.Font = new Font(Control.DefaultFont, FontStyle.Regular);
+        }
+
+        static void SetCellBold(DataGridViewCell cell)
+        {            
+            cell.Style.Font = new Font(Control.DefaultFont, FontStyle.Bold);
         }
 
         static void WriteString(FileStream stream, string text)
@@ -512,27 +545,27 @@ namespace Rebuilder
             stream.Write(write_bytes, 0, write_bytes.Length);
         }
 
-        public void Insert(string output_fn)
+        private void ConvertTableToReplaceData()
         {
-            if (string.IsNullOrEmpty(jukebox_si_path))
-            {
-                FindJukeboxSI();
-
-                if (string.IsNullOrEmpty(jukebox_si_path))
-                {
-                    return;
-                }
-            }
+            replace_src.Clear();
+            replace_dst.Clear();
 
             for (int i = 0; i < filenames.Count; i++)
             {
                 if (table.Rows[i].Cells[1].Value.ToString() != filenames[i])
                 {
-                    File.Copy(table.Rows[i].Cells[1].Value.ToString(), temp_extract_path + "/" + filenames[i], true);
+                    replace_src.Add(table.Rows[i].Cells[1].Value.ToString());
+                    replace_dst.Add(filenames[i]);
                 }
             }
+        }
 
-            Reconstruct(output_fn);
+        public void Insert(string output_fn)
+        {
+            if (Prepare())
+            {
+                Reconstruct(output_fn);
+            }
         }
 
         private void Reconstruct(string output_fn)
@@ -757,159 +790,164 @@ namespace Rebuilder
 
                     Int32 millis = 0;
 
-                    if (File.Exists(temp_extract_path + "/" + wav_fn))
+                    string wav_file;
+
+                    int replace_index = replace_dst.IndexOf(wav_fn);
+                    if (replace_index == -1)
                     {
-                        using (FileStream wav_str = new FileStream(temp_extract_path + "/" + wav_fn, FileMode.Open, FileAccess.Read))
-                        {
-                            //Console.WriteLine("Inserting " + wav_fn);
-
-                            // Ignore first part of the wav header
-                            if (!SeekUntil(wav_str, "WAVE") || !SeekUntil(wav_str, "fmt "))
-                            {
-                                Console.WriteLine("Invalid file at " + wav_fn);
-                                return;
-                            }
-                            wav_str.Position += 4;
-
-                            long old_pos = out_stream.Position;
-                            out_stream.Position = wave_header_pos;
-
-                            // Copy WAV header data
-                            byte[] wav_header = new byte[16];
-                            wav_str.Read(wav_header, 0, wav_header.Length);
-                            out_stream.Write(wav_header, 0, wav_header.Length);
-
-                            // Total data size in MxCh is the WAV's data size + 4
-                            if (!SeekUntil(wav_str, "data"))
-                            {
-                                Console.WriteLine("Invalid file at " + wav_fn);
-                                return;
-                            }
-                            byte[] data_size_bytes = new byte[4];
-                            wav_str.Read(data_size_bytes, 0, data_size_bytes.Length);
-                            Int32 wav_data_size = (BitConverter.ToInt32(data_size_bytes, 0));
-                            data_size_bytes = BitConverter.GetBytes((Int32)(wav_data_size + 4));
-                            out_stream.Write(data_size_bytes, 0, data_size_bytes.Length);
-                            long wav_end = wav_str.Position + wav_data_size;
-
-                            // Re-skip latter 4 bytes of MxCh header
-                            out_stream.Position = old_pos;
-
-                            // Write first FLC chunk
-                            /*
-                            if (flc_id != -1)
-                            {
-                                int index = ids.IndexOf(flc_id);
-                                int remainder = (int)(si_buffer_size - (out_stream.Position % si_buffer_size));
-
-                                if (data[index][0].Length > remainder)
-                                {
-                                    WriteZeroes(out_stream, (int)remainder);
-                                }
-                                
-                                out_stream.Write(data[index][0], 0, data[index][0].Length);
-                            }
-                            */
-
-                            // Loop over data in WAV
-                            // Write out WAV file chunking along the way
-                            int max_wav_data = BitConverter.ToInt32(wav_header, 8);
-                            int max_chunk_size = max_wav_data + 22;
-                            while (wav_str.Position < wav_end)
-                            {
-                                // SI files are also buffered at 20000h (or 131072 bytes), so we can only write that much at a time
-                                Int32 this_chunk_max = (Int32)Math.Min(max_chunk_size, si_buffer_size - (out_stream.Position % si_buffer_size));
-
-                                if (this_chunk_max <= 22)
-                                {
-                                    WriteZeroes(out_stream, this_chunk_max);
-                                }
-                                else
-                                {
-                                    Int16 flags = 0;
-                                    if (this_chunk_max < max_chunk_size)
-                                    {
-                                        flags = 16;
-                                    }
-
-                                    this_chunk_max -= 8;
-
-                                    int actual_wav_chunk_size = this_chunk_max - 14;
-
-                                    int actual_data_chunk_size = max_wav_data;
-
-                                    if (wav_str.Position + actual_wav_chunk_size > wav_end)
-                                    {
-                                        flags = 0;
-                                        actual_wav_chunk_size = (int)(wav_end - wav_str.Position);
-                                        this_chunk_max = actual_wav_chunk_size + 14;
-                                        actual_data_chunk_size = actual_wav_chunk_size;
-                                    }
-
-                                    WriteMxChHeader(out_stream, this_chunk_max, flags, wav_id, millis, actual_data_chunk_size);
-
-                                    byte[] wav_bytes = new byte[actual_wav_chunk_size];
-                                    wav_str.Read(wav_bytes, 0, actual_wav_chunk_size);
-                                    out_stream.Write(wav_bytes, 0, actual_wav_chunk_size);
-
-                                    // If we had to split this chunk in half, write the second half now
-                                    if (flags == 16)
-                                    {
-                                        int remaining_wav_data = max_wav_data - actual_wav_chunk_size;
-
-                                        while (remaining_wav_data > 0)
-                                        {
-                                            int true_max_chunk_size = Math.Min(remaining_wav_data + 22, si_buffer_size);
-                                            int true_wav_data_size = true_max_chunk_size - 22;
-
-                                            WriteMxChHeader(out_stream, true_max_chunk_size - 8, flags, wav_id, millis, true_wav_data_size);
-
-                                            byte[] joining_wav_bytes = new byte[true_wav_data_size];
-                                            wav_str.Read(joining_wav_bytes, 0, true_wav_data_size);
-                                            out_stream.Write(joining_wav_bytes, 0, true_wav_data_size);
-
-                                            remaining_wav_data -= true_wav_data_size;
-                                        }
-                                    }
-
-                                    millis += 1000;
-
-                                    // If we have FLC chunks
-                                    /*
-                                    if (flc_id != -1 && wav_str.Position < wav_end)
-                                    {
-                                        // Write 10 FLC chunks
-                                        for (int i=0;i<10;i++)
-                                        {
-                                            int flc_data_index = ids.IndexOf(flc_id);
-                                            int flc_write_ind = (flc_write_count*2) % data[flc_data_index].Count;
-
-                                            //if (flc_write_ind >= data[flc_data_index].Count)
-                                            //{
-                                                //break;
-                                            //}
-
-                                            long remainder = si_buffer_size - (out_stream.Position % si_buffer_size);
-
-                                            if (data[flc_data_index][flc_write_ind].Length > remainder)
-                                            {
-                                                WriteZeroes(out_stream, (int)remainder);
-                                            }
-
-                                            out_stream.Write(data[flc_data_index][flc_write_ind], 0, data[flc_data_index][flc_write_ind].Length);
-
-                                            flc_write_count++;
-                                        }                                        
-                                    }
-                                    */
-                                }
-                            }
-                        }
+                        // We won't replace this file so just use the original
+                        wav_file = temp_extract_path + "/" + wav_fn;
                     }
                     else
                     {
-                        Console.WriteLine(wav_fn + " doesn't exist. Make sure you 'extract' all files from the SI file before trying to 'insert'.");
-                        return;
+                        wav_file = replace_src[replace_index];
+                    }
+
+                    using (FileStream wav_str = new FileStream(wav_file, FileMode.Open, FileAccess.Read))
+                    {
+                        //Console.WriteLine("Inserting " + wav_fn);
+
+                        // Ignore first part of the wav header
+                        if (!SeekUntil(wav_str, "WAVE") || !SeekUntil(wav_str, "fmt "))
+                        {
+                            Console.WriteLine("Invalid file at " + wav_fn);
+                            return;
+                        }
+                        wav_str.Position += 4;
+
+                        long old_pos = out_stream.Position;
+                        out_stream.Position = wave_header_pos;
+
+                        // Copy WAV header data
+                        byte[] wav_header = new byte[16];
+                        wav_str.Read(wav_header, 0, wav_header.Length);
+                        out_stream.Write(wav_header, 0, wav_header.Length);
+
+                        // Total data size in MxCh is the WAV's data size + 4
+                        if (!SeekUntil(wav_str, "data"))
+                        {
+                            Console.WriteLine("Invalid file at " + wav_fn);
+                            return;
+                        }
+                        byte[] data_size_bytes = new byte[4];
+                        wav_str.Read(data_size_bytes, 0, data_size_bytes.Length);
+                        Int32 wav_data_size = (BitConverter.ToInt32(data_size_bytes, 0));
+                        data_size_bytes = BitConverter.GetBytes((Int32)(wav_data_size + 4));
+                        out_stream.Write(data_size_bytes, 0, data_size_bytes.Length);
+                        long wav_end = wav_str.Position + wav_data_size;
+
+                        // Re-skip latter 4 bytes of MxCh header
+                        out_stream.Position = old_pos;
+
+                        // Write first FLC chunk
+                        /*
+                        if (flc_id != -1)
+                        {
+                            int index = ids.IndexOf(flc_id);
+                            int remainder = (int)(si_buffer_size - (out_stream.Position % si_buffer_size));
+
+                            if (data[index][0].Length > remainder)
+                            {
+                                WriteZeroes(out_stream, (int)remainder);
+                            }
+
+                            out_stream.Write(data[index][0], 0, data[index][0].Length);
+                        }
+                        */
+
+                        // Loop over data in WAV
+                        // Write out WAV file chunking along the way
+                        int max_wav_data = BitConverter.ToInt32(wav_header, 8);
+                        int max_chunk_size = max_wav_data + 22;
+                        while (wav_str.Position < wav_end)
+                        {
+                            // SI files are also buffered at 20000h (or 131072 bytes), so we can only write that much at a time
+                            Int32 this_chunk_max = (Int32)Math.Min(max_chunk_size, si_buffer_size - (out_stream.Position % si_buffer_size));
+
+                            if (this_chunk_max <= 22)
+                            {
+                                WriteZeroes(out_stream, this_chunk_max);
+                            }
+                            else
+                            {
+                                Int16 flags = 0;
+                                if (this_chunk_max < max_chunk_size)
+                                {
+                                    flags = 16;
+                                }
+
+                                this_chunk_max -= 8;
+
+                                int actual_wav_chunk_size = this_chunk_max - 14;
+
+                                int actual_data_chunk_size = max_wav_data;
+
+                                if (wav_str.Position + actual_wav_chunk_size > wav_end)
+                                {
+                                    flags = 0;
+                                    actual_wav_chunk_size = (int)(wav_end - wav_str.Position);
+                                    this_chunk_max = actual_wav_chunk_size + 14;
+                                    actual_data_chunk_size = actual_wav_chunk_size;
+                                }
+
+                                WriteMxChHeader(out_stream, this_chunk_max, flags, wav_id, millis, actual_data_chunk_size);
+
+                                byte[] wav_bytes = new byte[actual_wav_chunk_size];
+                                wav_str.Read(wav_bytes, 0, actual_wav_chunk_size);
+                                out_stream.Write(wav_bytes, 0, actual_wav_chunk_size);
+
+                                // If we had to split this chunk in half, write the second half now
+                                if (flags == 16)
+                                {
+                                    int remaining_wav_data = max_wav_data - actual_wav_chunk_size;
+
+                                    while (remaining_wav_data > 0)
+                                    {
+                                        int true_max_chunk_size = Math.Min(remaining_wav_data + 22, si_buffer_size);
+                                        int true_wav_data_size = true_max_chunk_size - 22;
+
+                                        WriteMxChHeader(out_stream, true_max_chunk_size - 8, flags, wav_id, millis, true_wav_data_size);
+
+                                        byte[] joining_wav_bytes = new byte[true_wav_data_size];
+                                        wav_str.Read(joining_wav_bytes, 0, true_wav_data_size);
+                                        out_stream.Write(joining_wav_bytes, 0, true_wav_data_size);
+
+                                        remaining_wav_data -= true_wav_data_size;
+                                    }
+                                }
+
+                                millis += 1000;
+
+                                // If we have FLC chunks
+                                /*
+                                if (flc_id != -1 && wav_str.Position < wav_end)
+                                {
+                                    // Write 10 FLC chunks
+                                    for (int i=0;i<10;i++)
+                                    {
+                                        int flc_data_index = ids.IndexOf(flc_id);
+                                        int flc_write_ind = (flc_write_count*2) % data[flc_data_index].Count;
+
+                                        //if (flc_write_ind >= data[flc_data_index].Count)
+                                        //{
+                                            //break;
+                                        //}
+
+                                        long remainder = si_buffer_size - (out_stream.Position % si_buffer_size);
+
+                                        if (data[flc_data_index][flc_write_ind].Length > remainder)
+                                        {
+                                            WriteZeroes(out_stream, (int)remainder);
+                                        }
+
+                                        out_stream.Write(data[flc_data_index][flc_write_ind], 0, data[flc_data_index][flc_write_ind].Length);
+
+                                        flc_write_count++;
+                                    }                                        
+                                }
+                                */
+                            }
+                        }
                     }
 
                     // Write ending chunk                    
@@ -948,17 +986,39 @@ namespace Rebuilder
 
         public int ReplaceCount()
         {
-            int count = 0;
+            return replace_src.Count;
+        }
 
-            for (int i = 0; i < filenames.Count; i++)
+        public void LoadData(XmlReader stream)
+        {
+            if (stream.IsEmptyElement)
             {
-                if (table.Rows[i].Cells[1].Value.ToString() != filenames[i])
-                {
-                    count++;
-                }
+                return;
             }
 
-            return count;
+            string tag = stream.Name;
+
+            while (stream.Read() && !(stream.Name == tag && stream.NodeType == XmlNodeType.EndElement))
+            {
+                if (stream.IsStartElement() && stream.Name == "replace")
+                {
+                    replace_dst.Add(stream.GetAttribute("original"));
+
+                    stream.Read();
+                    replace_src.Add(stream.Value);
+                }
+            }
+        }
+
+        public void SaveData(XmlWriter stream)
+        {
+            for (int i = 0; i < replace_src.Count; i++)
+            {
+                stream.WriteStartElement("replace");
+                stream.WriteAttributeString("original", replace_dst[i]);
+                stream.WriteString(replace_src[i]);
+                stream.WriteEndElement(); // replace
+            }
         }
     }
 }

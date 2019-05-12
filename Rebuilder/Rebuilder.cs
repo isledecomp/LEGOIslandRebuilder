@@ -6,6 +6,7 @@ using System.IO;
 using System.Drawing;
 using System.Diagnostics;
 using Microsoft.Win32;
+using System.Xml;
 
 namespace Rebuilder
 {
@@ -258,6 +259,9 @@ namespace Rebuilder
             ResumeLayout(true);
 
             CenterToScreen();
+
+            Shown += new EventHandler(OnStartup);
+            FormClosing += new FormClosingEventHandler(OnClosing);
         }
 
         private void Write(FileStream fs, byte[] bytes, long pos = -1)
@@ -345,7 +349,7 @@ namespace Rebuilder
                 // Redirect JUKEBOX.SI if we're inserting music
                 if (music_injector.ReplaceCount() > 0)
                 {
-                    Uri uri1 = new Uri(dir + "/jukebox");
+                    Uri uri1 = new Uri(Path.GetTempPath() + "jukebox");
                     Uri uri2 = new Uri(source_dir + "/ISLE.EXE");
                     Uri relative = uri2.MakeRelativeUri(uri1);
                     string jukebox_path = "\\" + relative.ToString().Replace("/", "\\");
@@ -386,24 +390,43 @@ namespace Rebuilder
                     incompatibilities += redirect_saves.Text + "\n";
                 }
             }
-            
-            using (RegistryKey src = Registry.LocalMachine.OpenSubKey("SOFTWARE\\WOW6432Node\\Mindscape\\LEGO Island", false))
-            using (RegistryKey dst = Registry.CurrentUser.CreateSubKey("Software\\Mindscape\\LEGO Island"))
+
+            RegistryKey src = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Mindscape\\LEGO Island", false);
+            if (src == null)
             {
-                // Copy config data from HKLM to HKCU
-                CopyRegistryKey(src, dst);
+                src = Registry.LocalMachine.OpenSubKey("SOFTWARE\\WOW6432Node\\Mindscape\\LEGO Island", false);
+            }
 
-                // Set full screen value
-                dst.SetValue("Full Screen", run_fullscreen.Checked ? "YES" : "NO");
-
-                // Redirect save path
-                if (redirect_saves.Checked)
+            if (src == null)
+            {
+                if (MessageBox.Show("Failed to find LEGO Island's registry entries. Some patches may fail. Do you wish to continue?",
+                    "Failed to find registry keys",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning) == DialogResult.No)
                 {
-                    string new_save_dir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\LEGO Island\\";
-                    Directory.CreateDirectory(new_save_dir);
-                    dst.SetValue("savepath", new_save_dir);
+                    return false;
                 }
             }
+            else
+            {
+                using (RegistryKey dst = Registry.CurrentUser.CreateSubKey("Software\\Mindscape\\LEGO Island"))
+                {
+                    // Copy config data from HKLM to HKCU
+                    CopyRegistryKey(src, dst);
+
+                    // Set full screen value
+                    dst.SetValue("Full Screen", run_fullscreen.Checked ? "YES" : "NO");
+
+                    // Redirect save path
+                    if (redirect_saves.Checked)
+                    {
+                        string new_save_dir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\LEGO Island\\";
+                        Directory.CreateDirectory(new_save_dir);
+                        dst.SetValue("savepath", new_save_dir);
+                    }
+                }
+            }
+            
 
             return string.IsNullOrEmpty(incompatibilities) || IncompatibleBuildMessage(incompatibilities);
         }
@@ -471,7 +494,7 @@ namespace Rebuilder
                 return;
             }
 
-            string temp_path = Path.GetTempPath() + "lire";
+            string temp_path = Path.GetTempPath() + "LEGOIslandRebuilder";
             Directory.CreateDirectory(temp_path);
 
             string dir = "";
@@ -544,21 +567,24 @@ namespace Rebuilder
             // Perform music insertion if necessary
             if (music_injector.ReplaceCount() > 0)
             {
-                music_injector.Insert(temp_path + "/JUKEBOX.SI");
+                music_injector.Insert(Path.GetTempPath() + "JUKEBOX.SI");
             }
 
             // Set new EXE's compatibility mode to 256-colors
             using (RegistryKey key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers", true))
             {
-                key.CreateSubKey(temp_path + "\\ISLE.EXE");
+                if (key != null)
+                {
+                    key.CreateSubKey(temp_path + "\\ISLE.EXE");
 
-                if (run_fullscreen.Checked)
-                {
-                    key.SetValue(temp_path + "\\ISLE.EXE", "HIGHDPIAWARE DWM8And16BitMitigation");
-                }
-                else
-                {
-                    key.SetValue(temp_path + "\\ISLE.EXE", "HIGHDPIAWARE DWM8And16BitMitigation 256COLOR");
+                    if (run_fullscreen.Checked)
+                    {
+                        key.SetValue(temp_path + "\\ISLE.EXE", "HIGHDPIAWARE DWM8And16BitMitigation");
+                    }
+                    else
+                    {
+                        key.SetValue(temp_path + "\\ISLE.EXE", "HIGHDPIAWARE DWM8And16BitMitigation 256COLOR");
+                    }
                 }
             }
 
@@ -589,6 +615,145 @@ namespace Rebuilder
         private void AuthorLinkClick(object sender, LinkLabelLinkClickedEventArgs e)
         {
             Process.Start("http://www.itsmattkc.com/");
+        }
+
+        private string GetSettingsPath()
+        {
+            string settings_path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "/LEGOIslandRebuilder/settings.xml";
+
+            Directory.CreateDirectory(Path.GetDirectoryName(settings_path));
+
+            return settings_path;
+        }
+
+        private void OnStartup(object sender, EventArgs e)
+        {
+            // Load settings
+            string settings_path = GetSettingsPath();
+
+            if (File.Exists(settings_path))
+            {
+                XmlReader stream = XmlReader.Create(settings_path);
+
+                while (stream.Read())
+                {
+                    if (stream.NodeType == XmlNodeType.Element && stream.IsStartElement())
+                    {
+                        if (stream.Name == "turnspeed")
+                        {
+                            stream.Read();
+                            turn_speed_control.Value = decimal.Parse(stream.Value);
+                        }
+                        else if (stream.Name == "movespeed")
+                        {
+                            stream.Read();
+                            movement_speed_control.Value = decimal.Parse(stream.Value);
+                        }
+                        else if (stream.Name == "fullscreen")
+                        {
+                            stream.Read();
+                            run_fullscreen.Checked = bool.Parse(stream.Value);
+                        }
+                        else if (stream.Name == "stayactive")
+                        {
+                            stream.Read();
+                            stay_active_when_window_is_defocused.Checked = bool.Parse(stream.Value);
+                        }
+                        else if (stream.Name == "redirecttoappdata")
+                        {
+                            stream.Read();
+                            redirect_saves.Checked = bool.Parse(stream.Value);
+                        }
+                        else if (stream.Name == "showadvanced")
+                        {
+                            stream.Read();
+                            advanced_button.Checked = bool.Parse(stream.Value);
+                        }
+                        else if (stream.Name == "overrideres")
+                        {
+                            stream.Read();
+                            override_resolution.Checked = bool.Parse(stream.Value);
+                        }
+                        else if (stream.Name == "overridereswidth")
+                        {
+                            stream.Read();
+                            res_width.Value = decimal.Parse(stream.Value);
+                        }
+                        else if (stream.Name == "overrideresheight")
+                        {
+                            stream.Read();
+                            res_height.Value = decimal.Parse(stream.Value);
+                        }
+                        else if (stream.Name == "musicinjection")
+                        {
+                            music_injector.LoadData(stream);
+                            UpdateMusicInjectorBtnText();
+                        }
+                    }
+                }
+
+                stream.Close();
+            }
+        }
+
+        private void OnClosing(object sender, FormClosingEventArgs e)
+        {
+            // Save settings
+
+            string settings_path = GetSettingsPath();
+
+            XmlWriter stream = XmlWriter.Create(settings_path);
+
+            stream.WriteStartDocument();
+
+            stream.WriteStartElement("settings");
+
+            stream.WriteStartElement("turnspeed");
+            stream.WriteString(turn_speed_control.Value.ToString());
+            stream.WriteEndElement(); // turnspeed
+
+            stream.WriteStartElement("movespeed");
+            stream.WriteString(movement_speed_control.Value.ToString());
+            stream.WriteEndElement(); // movespeed
+
+            stream.WriteStartElement("fullscreen");
+            stream.WriteString(run_fullscreen.Checked.ToString());
+            stream.WriteEndElement(); // fullscreen
+
+            stream.WriteStartElement("stayactive");
+            stream.WriteString(stay_active_when_window_is_defocused.Checked.ToString());
+            stream.WriteEndElement(); // stayactive
+
+            stream.WriteStartElement("redirecttoappdata");
+            stream.WriteString(redirect_saves.Checked.ToString());
+            stream.WriteEndElement(); // redirecttoappdata
+
+            stream.WriteStartElement("showadvanced");
+            stream.WriteString(advanced_button.Checked.ToString());
+            stream.WriteEndElement(); // showadvanced
+
+            stream.WriteStartElement("overrideres");
+            stream.WriteString(override_resolution.Checked.ToString());
+            stream.WriteEndElement(); // overrideres
+
+            stream.WriteStartElement("overridereswidth");
+            stream.WriteString(res_width.Value.ToString());
+            stream.WriteEndElement(); // overridereswidth
+
+            stream.WriteStartElement("overrideresheight");
+            stream.WriteString(res_height.Value.ToString());
+            stream.WriteEndElement(); // overrideresheight
+
+            stream.WriteStartElement("musicinjection");
+            music_injector.SaveData(stream);
+            stream.WriteEndElement(); // musicinjection
+
+            stream.WriteEndElement(); // settings
+
+            stream.WriteEndDocument();
+
+            stream.Close();
+
         }
 
         [STAThread]
