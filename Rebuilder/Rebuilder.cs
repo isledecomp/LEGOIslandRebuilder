@@ -30,6 +30,8 @@ namespace Rebuilder
         MusicInjector music_injector = new MusicInjector();
         Button music_replacement_btn = new Button();
 
+        string jukebox_output;
+
         Process p = null;
 
         string run_button_run = "Run";
@@ -351,7 +353,8 @@ namespace Rebuilder
                 // Redirect JUKEBOX.SI if we're inserting music
                 if (music_injector.ReplaceCount() > 0)
                 {
-                    Uri uri1 = new Uri(Path.GetTempPath() + "jukebox");
+                    Uri uri1 = new Uri(jukebox_output.Substring(0, jukebox_output.LastIndexOf(".")));
+
                     Uri uri2 = new Uri(source_dir + "/ISLE.EXE");
                     Uri relative = uri2.MakeRelativeUri(uri1);
                     string jukebox_path = "\\" + relative.ToString().Replace("/", "\\");
@@ -564,13 +567,27 @@ namespace Rebuilder
                 return;
             }
 
-            if (!Patch(dir, temp_path)) return;
-
             // Perform music insertion if necessary
             if (music_injector.ReplaceCount() > 0)
             {
-                music_injector.Insert(Path.GetTempPath() + "JUKEBOX.SI");
+                jukebox_output = dir + "/LEGO/Scripts/JUKEBOX.SI";
+
+                try
+                {
+                    using (FileStream test_fs = new FileStream(jukebox_output, FileMode.Create, FileAccess.Write))
+                    {
+
+                    }
+                }
+                catch
+                {
+                    jukebox_output = Path.GetTempPath() + "JUKEBOX.SI";
+                }
+
+                music_injector.Insert(jukebox_output);
             }
+
+            if (!Patch(dir, temp_path)) return;
 
             // Set new EXE's compatibility mode to 256-colors
             using (RegistryKey key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers", true))
