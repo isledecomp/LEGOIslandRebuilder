@@ -570,7 +570,7 @@ namespace Rebuilder
             // Perform music insertion if necessary
             if (music_injector.ReplaceCount() > 0)
             {
-                jukebox_output = dir + "/LEGO/Scripts/JUKEBOX.SI";
+                jukebox_output = dir + "/LEGO/Scripts/REJUKEBOX.SI";
 
                 try
                 {
@@ -581,7 +581,7 @@ namespace Rebuilder
                 }
                 catch
                 {
-                    jukebox_output = Path.GetTempPath() + "JUKEBOX.SI";
+                    jukebox_output = Path.GetTempPath() + "REJUKEBOX.SI";
                 }
 
                 music_injector.Insert(jukebox_output);
