@@ -23,9 +23,12 @@ namespace Rebuilder
         CheckBox override_resolution;
         NumericUpDown res_width;
         NumericUpDown res_height;
+        CheckBox upscale_bitmaps;
 
         Button run_button;
         CheckBox advanced_button;
+
+        CheckBox multiple_instances;
 
         MusicInjector music_injector = new MusicInjector();
         Button music_replacement_btn = new Button();
@@ -137,6 +140,14 @@ namespace Rebuilder
 
             row++;
 
+            multiple_instances = new CheckBox();
+            multiple_instances.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            multiple_instances.Text = "Allow multiple instances";
+            grid.Controls.Add(multiple_instances, 0, row);
+            grid.SetColumnSpan(multiple_instances, 2);
+
+            row++;
+
             stay_active_when_window_is_defocused = new CheckBox();
             stay_active_when_window_is_defocused.Checked = false;
             stay_active_when_window_is_defocused.Anchor = AnchorStyles.Left | AnchorStyles.Right;
@@ -228,6 +239,14 @@ namespace Rebuilder
 
             row++;
 
+            upscale_bitmaps = new CheckBox();
+            upscale_bitmaps.Enabled = false;
+            upscale_bitmaps.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            upscale_bitmaps.Text = "Upscale Bitmaps";
+            advanced_grid.Controls.Add(upscale_bitmaps, 1, row);
+
+            row++;
+
             Label advanced_warning_lbl = new Label();
             advanced_warning_lbl.Text = "WARNING: These features are experimental and often incomplete. Use at your own risk.";
             advanced_warning_lbl.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
@@ -253,6 +272,7 @@ namespace Rebuilder
             tip.SetToolTip(stay_active_when_window_is_defocused, "LEGO Island's default behavior is to pause all operations when defocused. " +
                 "This setting overrides that behavior and keeps LEGO Island active even when unfocused.\n\n" +
                 "NOTE: This currently only works in windowed mode.");
+            tip.SetToolTip(upscale_bitmaps, "WARNING: This doesn't upscale the bitmaps' hitboxes yet and can make 2D areas like the Information Center difficult to navigate");
 
             Controls.Add(grid);
             Controls.Add(advanced_grid);
@@ -287,7 +307,18 @@ namespace Rebuilder
 
             fs.WriteByte(b);
         }
-        
+
+        private void WriteManyBytes(FileStream fs, byte b, int count, long pos = -1)
+        {
+            if (pos > -1)
+            {
+                fs.Position = pos;
+            }
+
+            for (int i=0;i< count;i++)
+                fs.WriteByte(b);
+        }
+
         private void WriteInt32(FileStream fs, Int32 integer, long pos = -1)
         {
             byte[] int_bytes = BitConverter.GetBytes(integer);
@@ -350,6 +381,12 @@ namespace Rebuilder
                     WriteByte(lego1dll, 0x80, aug_build ? 0xAD7D3 : 0xADD43);
                 }
 
+                if (multiple_instances.Checked)
+                {
+                    // LEGO Island uses FindWindowA in user32.dll to determine if it's already running, here we replace the call with moving 0x0 into EAX, simulating a NULL response from FindWindowA
+                    WriteByte(isleexe, 0xEB, 0x10B5);
+                }
+
                 // Redirect JUKEBOX.SI if we're inserting music
                 if (music_injector.ReplaceCount() > 0)
                 {
@@ -358,7 +395,6 @@ namespace Rebuilder
                     Uri uri2 = new Uri(source_dir + "/ISLE.EXE");
                     Uri relative = uri2.MakeRelativeUri(uri1);
                     string jukebox_path = "\\" + relative.ToString().Replace("/", "\\");
-                    //Console.WriteLine(jukebox_path);
 
                     if (aug_build)
                     {
@@ -388,6 +424,33 @@ namespace Rebuilder
                     // Changes D3D render size
                     WriteInt32(isleexe, (Int32)res_width.Value-1, 0x4D0);
                     WriteInt32(isleexe, (Int32)res_height.Value-1, 0x4D7);
+
+                    // Write code to upscale the bitmaps
+                    if (upscale_bitmaps.Checked)
+                    {
+                        Write(lego1dll, new byte[] { 0xE9, 0x2D, 0x01, 0x00, 0x00, 0x8B, 0x56, 0x1C, 0x6A, 0x00, 0x8D, 0x45, 0xE4, 0xF6, 0x42, 0x30, 0x08, 0x74, 0x07, 0x68, 0x00, 0x80, 0x00, 0x00, 0xEB, 0x02, 0x6A, 0x00, 0x8B, 0x3B, 0x50, 0x51, 0x8D, 0x4D, 0xD4, 0x51, 0x53, 0x53, 0x50, 0x68 }, 0xB20E9);
+
+                        WriteFloat(lego1dll, (float) res_height.Value / 480.0f);
+
+                        Int32 x_offset = (Int32)Math.Round((res_width.Value - (res_height.Value / 3 * 4))/2);
+                        
+
+                        Write(lego1dll, new byte[] { 0xDB, 0x45, 0xD4, 0xD8, 0x0C, 0x24, 0xDB, 0x5D, 0xD4, 0xDB, 0x45, 0xD8, 0xD8, 0x0C, 0x24, 0xDB, 0x5D, 0xD8, 0xDB, 0x45, 0xDC, 0xD8, 0x0C, 0x24, 0xDB, 0x5D, 0xDC, 0xDB, 0x45, 0xE0, 0xD8, 0x0C, 0x24, 0xDB, 0x5D, 0xE0, 0x58, 0x8B, 0x45, 0xD4, 0x05 });
+                        WriteInt32(lego1dll, x_offset);
+                        Write(lego1dll, new byte[] { 0x89, 0x45, 0xD4, 0x8B, 0x45, 0xDC, 0x05 });
+                        WriteInt32(lego1dll, x_offset);
+                        Write(lego1dll, new byte[] { 0x89, 0x45, 0xDC });
+
+                        // Frees up 143 bytes of NOPs
+                        WriteManyBytes(lego1dll, 0x90, 143);
+
+                        Write(lego1dll, new byte[] { 0x58, 0x5B });
+
+                        Write(lego1dll, new byte[] { 0xE9, 0xF6, 0xFD, 0xFF, 0xFF }, 0xB22F3);
+
+                        // Frees up 19 bytes of NOPs
+                        WriteManyBytes(lego1dll, 0x90, 19);
+                    }
                 }
 
                 if (aug_build && redirect_saves.Checked)
@@ -470,6 +533,7 @@ namespace Rebuilder
         {
             res_width.Enabled = override_resolution.Checked;
             res_height.Enabled = override_resolution.Checked;
+            upscale_bitmaps.Enabled = override_resolution.Checked;
         }
 
         private void CopyRegistryKey(RegistryKey src, RegistryKey dst)
@@ -596,8 +660,9 @@ namespace Rebuilder
                 {
                     key.CreateSubKey(temp_path + "\\ISLE.EXE");
 
+                    //string compat_string = "HIGHDPIAWARE";
                     string compat_string = "HIGHDPIAWARE DWM8And16BitMitigation";
-
+                    
                     if (!run_fullscreen.Checked)
                     {
                         compat_string += " 256COLOR";
@@ -713,6 +778,11 @@ namespace Rebuilder
                             music_injector.LoadData(stream);
                             UpdateMusicInjectorBtnText();
                         }
+                        else if (stream.Name == "upscalebitmaps")
+                        {
+                            stream.Read();
+                            upscale_bitmaps.Checked = bool.Parse(stream.Value);
+                        }
                     }
                 }
 
@@ -767,6 +837,10 @@ namespace Rebuilder
             stream.WriteStartElement("overrideresheight");
             stream.WriteString(res_height.Value.ToString());
             stream.WriteEndElement(); // overrideresheight
+
+            stream.WriteStartElement("upscalebitmaps");
+            stream.WriteString(upscale_bitmaps.Checked.ToString());
+            stream.WriteEndElement();
 
             stream.WriteStartElement("musicinjection");
             music_injector.SaveData(stream);

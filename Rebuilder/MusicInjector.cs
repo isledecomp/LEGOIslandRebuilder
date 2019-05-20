@@ -634,6 +634,7 @@ namespace Rebuilder
                     out_stream.Write(b, 0, b.Length);
 
                     // Copy MxOb data
+                    long mxob_output_start = out_stream.Position;
                     byte[] mxob_data = new byte[mxob_len];
                     in_stream.Read(mxob_data, 0, mxob_len);
                     out_stream.Write(mxob_data, 0, mxob_len);
@@ -643,6 +644,7 @@ namespace Rebuilder
                     List<Int32> ids = new List<Int32>();
                     List<List<byte[]>> data = new List<List<byte[]>>();
                     Int32 wav_id = -1;
+                    long wav_ms_pos = -1;
                     Int32 flc_id = -1;
                     int flc_write_count = 1;
 
@@ -659,10 +661,15 @@ namespace Rebuilder
                             {
                                 if (mxob_data[i] == 0)
                                 {
-                                    id = BitConverter.ToInt32(mxob_data, i + 1);
+                                    i++;
+                                    id = BitConverter.ToInt32(mxob_data, i);
                                     break;
                                 }
                             }
+
+                            i += 12;
+
+                            int ms_pos = i;
 
                             // Find type
                             for (; i < mxob_len - 4; i++)
@@ -673,6 +680,8 @@ namespace Rebuilder
                                     if (here == " WAV")
                                     {
                                         wav_id = id;
+
+                                        wav_ms_pos = mxob_output_start + ms_pos;
                                     }
                                     else if (here == " FLC")
                                     {
@@ -835,6 +844,17 @@ namespace Rebuilder
                         data_size_bytes = BitConverter.GetBytes((Int32)(wav_data_size + 4));
                         out_stream.Write(data_size_bytes, 0, data_size_bytes.Length);
                         long wav_end = wav_str.Position + wav_data_size;
+
+                        Int32 data_rate_per_second = BitConverter.ToInt32(wav_header, 8);
+
+                        Int32 millisecond_length = (Int32) Math.Round((double)wav_data_size * 1000.0 / (double)data_rate_per_second);
+
+                        // Write WAV's millisecond length (as a multiple of 1)
+                        out_stream.Position = wav_ms_pos;
+                        data_size_bytes = BitConverter.GetBytes(millisecond_length);
+                        out_stream.Write(data_size_bytes, 0, data_size_bytes.Length);
+                        data_size_bytes = BitConverter.GetBytes((Int32)1);
+                        out_stream.Write(data_size_bytes, 0, data_size_bytes.Length);
 
                         // Re-skip latter 4 bytes of MxCh header
                         out_stream.Position = old_pos;
