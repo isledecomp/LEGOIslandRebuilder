@@ -50,6 +50,7 @@ namespace Rebuilder
             };
 
         Rebuilder() {
+
             Text = "LEGO Island Rebuilder";
             MaximizeBox = false;
             Icon = Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
@@ -394,7 +395,7 @@ namespace Rebuilder
 
                     Uri uri2 = new Uri(source_dir + "/ISLE.EXE");
                     Uri relative = uri2.MakeRelativeUri(uri1);
-                    string jukebox_path = "\\" + relative.ToString().Replace("/", "\\");
+                    string jukebox_path = "\\" + Uri.UnescapeDataString(relative.ToString()).Replace("/", "\\");
 
                     if (aug_build)
                     {
