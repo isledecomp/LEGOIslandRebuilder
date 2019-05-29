@@ -798,6 +798,7 @@ namespace Rebuilder
                     }
 
                     Int32 millis = 0;
+                    Int32 millisecond_length = 0;
 
                     string wav_file;
 
@@ -847,7 +848,7 @@ namespace Rebuilder
 
                         Int32 data_rate_per_second = BitConverter.ToInt32(wav_header, 8);
 
-                        Int32 millisecond_length = (Int32) Math.Round((double)wav_data_size * 1000.0 / (double)data_rate_per_second);
+                        millisecond_length = (Int32) Math.Round((double)wav_data_size * 1000.0 / (double)data_rate_per_second);
 
                         // Write WAV's millisecond length (as a multiple of 1)
                         out_stream.Position = wav_ms_pos;
@@ -973,7 +974,7 @@ namespace Rebuilder
                     // Write ending chunk                    
                     for (int i = ids.Count - 1; i >= 0; i--)
                     {
-                        WriteMxChHeader(out_stream, 14, 2, ids[i], millis, 0);
+                        WriteMxChHeader(out_stream, 14, 2, ids[i], millisecond_length, 0);
                     }
 
                     // Write correct LIST and MxSt size
