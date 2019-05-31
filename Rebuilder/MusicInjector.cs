@@ -513,7 +513,7 @@ namespace Rebuilder
             }
         }
 
-        static void WriteMxChHeader(FileStream stream, Int32 chunk_size, Int16 flags, Int32 id, Int32 millis, Int32 actual_data_size)
+        static void WriteMxChHeader(FileStream stream, Int32 chunk_size, Int16 flags, Int32 id, UInt32 millis, Int32 actual_data_size)
         {
             // MxChs have to fall on even numbers
             if (stream.Position % 2 == 1)
@@ -644,6 +644,7 @@ namespace Rebuilder
                     List<Int32> ids = new List<Int32>();
                     List<List<byte[]>> data = new List<List<byte[]>>();
                     Int32 wav_id = -1;
+                    int mxob_wav_ms_pos = -1;
                     long wav_ms_pos = -1;
                     Int32 flc_id = -1;
                     int flc_write_count = 1;
@@ -681,6 +682,7 @@ namespace Rebuilder
                                     {
                                         wav_id = id;
 
+                                        mxob_wav_ms_pos = ms_pos;
                                         wav_ms_pos = mxob_output_start + ms_pos;
                                     }
                                     else if (here == " FLC")
@@ -797,8 +799,8 @@ namespace Rebuilder
                         }
                     }
 
-                    Int32 millis = 0;
-                    Int32 millisecond_length = 0;
+                    UInt32 millis = 0;
+                    UInt32 millisecond_length = 0;
 
                     string wav_file;
 
@@ -848,13 +850,29 @@ namespace Rebuilder
 
                         Int32 data_rate_per_second = BitConverter.ToInt32(wav_header, 8);
 
-                        millisecond_length = (Int32) Math.Round((double)wav_data_size * 1000.0 / (double)data_rate_per_second);
+                        millisecond_length = (UInt32) Math.Round((double)wav_data_size * 1000.0 / (double)data_rate_per_second);
 
-                        // Write WAV's millisecond length (as a multiple of 1)
-                        out_stream.Position = wav_ms_pos;
-                        data_size_bytes = BitConverter.GetBytes(millisecond_length);
+                        //
+                        // Write WAV's millisecond length and loop count
+                        //
+                        // LEGO Island's milliseconds are multiplied by the loop count, so we do that here (but we need to make sure the number doesn't overflow an Int32)
+                        //
+
+                        UInt32 loop_count = BitConverter.ToUInt32(mxob_data, mxob_wav_ms_pos + 4);
+                        UInt64 effective_ms = millisecond_length * loop_count;
+
+                        // If the value is too large for a 32-bit integer, resize it to fit
+                        if (effective_ms > UInt32.MaxValue)
+                        {
+                            loop_count = UInt32.MaxValue / millisecond_length;
+                            effective_ms = millisecond_length * loop_count;
+                        }
+
+                        // Write ms and loop values
+                        out_stream.Position = wav_ms_pos + 4;
+                        data_size_bytes = BitConverter.GetBytes((UInt32)effective_ms);
                         out_stream.Write(data_size_bytes, 0, data_size_bytes.Length);
-                        data_size_bytes = BitConverter.GetBytes((Int32)1);
+                        data_size_bytes = BitConverter.GetBytes(loop_count);
                         out_stream.Write(data_size_bytes, 0, data_size_bytes.Length);
 
                         // Re-skip latter 4 bytes of MxCh header
