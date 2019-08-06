@@ -51,10 +51,10 @@ namespace Rebuilder
             [Category("Controls")]
             [DisplayName("Turn Speed")]
             [Description("Set the turn speed multiplier. LEGO Island ties its turn speed to the frame rate which " +
-                "is too fast on modern PCs. Use this value to correct it.\n\n" +
-                "0.00 = No turning at all\n" +
-                "0.35 = Recommended for modern PCs\n" +
-                "1.00 = LEGO Island's default")]
+                "is too fast on modern PCs. Use this value to correct it. (" +
+                "0.00 = No turning at all, " +
+                "0.35 = Recommended for modern PCs, " +
+                "1.00 = LEGO Island's default)")]
             public decimal TurnSpeed
             {
                 get { return turn_speed; }
@@ -65,9 +65,9 @@ namespace Rebuilder
             [Category("Controls")]
             [DisplayName("Move Speed")]
             [Description("Set the movement speed multiplier. This value does not affect other racers so it can " +
-                "be used to cheat (or cripple) your chances in races.\n\n" +
-                "0.00 = No movement at all\n" +
-                "1.00 = LEGO Island's default")]
+                "be used to cheat (or cripple) your chances in races. (" +
+                "0.00 = No movement at all, " +
+                "1.00 = LEGO Island's default)")]
             public decimal MoveSpeed
             {
                 get { return move_speed; }
