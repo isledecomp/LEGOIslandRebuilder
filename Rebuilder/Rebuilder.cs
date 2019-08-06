@@ -28,6 +28,11 @@ namespace Rebuilder
         Button run_button;
         CheckBox advanced_button;
 
+        RadioButton default_fps_radio;
+        RadioButton uncapped_fps_radio;
+        RadioButton limited_fps_radio;
+        NumericUpDown limited_fps_value;
+
         CheckBox multiple_instances;
 
         MusicInjector music_injector = new MusicInjector();
@@ -164,6 +169,39 @@ namespace Rebuilder
             redirect_saves.Text = "Redirect save files to %APPDATA%";
             grid.Controls.Add(redirect_saves, 0, row);
             grid.SetColumnSpan(redirect_saves, 2);
+
+            row++;
+
+            GroupBox fps_group = new GroupBox();
+            fps_group.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            fps_group.Text = "Frame Rate";
+
+            TableLayoutPanel fps_panel = new TableLayoutPanel();
+            fps_panel.Dock = DockStyle.Fill;
+            fps_group.Controls.Add(fps_panel);
+
+            default_fps_radio = new RadioButton();
+            default_fps_radio.Checked = true;
+            default_fps_radio.Text = "Default";
+            fps_panel.Controls.Add(default_fps_radio, 0, 0);
+
+            uncapped_fps_radio = new RadioButton();
+            uncapped_fps_radio.Text = "Uncapped";
+            fps_panel.Controls.Add(uncapped_fps_radio, 0, 1);
+
+            limited_fps_radio = new RadioButton();
+            limited_fps_radio.Text = "Limited:";
+            fps_panel.Controls.Add(limited_fps_radio, 0, 2);
+
+            limited_fps_value = new NumericUpDown();
+            limited_fps_value.Enabled = false;
+            limited_fps_value.Value = 24.0M;
+            fps_panel.Controls.Add(limited_fps_value, 1, 2);
+
+            limited_fps_radio.CheckedChanged += new System.EventHandler(this.FpsChanged);
+
+            grid.Controls.Add(fps_group, 0, row);
+            grid.SetColumnSpan(fps_group, 2);
 
             row++;
 
@@ -415,6 +453,22 @@ namespace Rebuilder
                     WriteString(lego1dll, jukebox_path, aug_build ? 0xD28F6 : 0xD2E66);
                 }
 
+                // FPS Patch
+                if (uncapped_fps_radio.Checked)
+                {
+                    WriteInt32(isleexe, 0, 0x4B4);
+                }
+                else if (limited_fps_radio.Checked)
+                {
+                    Int32 delay = (Int32) Math.Round(1000.0M / limited_fps_value.Value);
+
+                    WriteInt32(isleexe, delay, 0x4B4);
+                }
+                if (uncapped_fps_radio.Checked || limited_fps_radio.Checked)
+                {
+                    WriteManyBytes(lego1dll, 0x90, 8, aug_build ? 0x7A68B : 0x7ABAB);
+                }
+
                 // INCOMPLETE: Resolution hack:
                 if (override_resolution.Checked)
                 {
@@ -556,6 +610,11 @@ namespace Rebuilder
             }
         }
 
+        private void FpsChanged(object sender, EventArgs e)
+        {
+            limited_fps_value.Enabled = limited_fps_radio.Checked;
+        }
+
         private void Run(object sender, EventArgs e)
         {
             if (p != null)
@@ -666,7 +725,16 @@ namespace Rebuilder
                     
                     if (!run_fullscreen.Checked)
                     {
-                        compat_string += " 256COLOR";
+                        if (System.Environment.OSVersion.Version.Major < 8)
+                        {
+                            // Use 16-bit on Windows 8+
+                            compat_string += " 16BITCOLOR";
+                        }
+                        else
+                        {
+                            // Older versions only have 256 color support
+                            compat_string += " 256COLOR";
+                        }
                     }
 
                     if (!redirect_saves.Checked || aug_build)
@@ -784,6 +852,18 @@ namespace Rebuilder
                             stream.Read();
                             upscale_bitmaps.Checked = bool.Parse(stream.Value);
                         }
+                        else if (stream.Name == "fpslimit")
+                        {
+                            stream.Read();
+                            default_fps_radio.Checked = (stream.Value == "0");
+                            uncapped_fps_radio.Checked = (stream.Value == "1");
+                            limited_fps_radio.Checked = (stream.Value == "2");
+                        }
+                        else if (stream.Name == "customfps")
+                        {
+                            stream.Read();
+                            limited_fps_value.Value = decimal.Parse(stream.Value);
+                        }
                     }
                 }
 
@@ -841,7 +921,26 @@ namespace Rebuilder
 
             stream.WriteStartElement("upscalebitmaps");
             stream.WriteString(upscale_bitmaps.Checked.ToString());
-            stream.WriteEndElement();
+            stream.WriteEndElement(); // upscalebitmaps
+
+            stream.WriteStartElement("fpslimit");
+            if (default_fps_radio.Checked)
+            {
+                stream.WriteString("0");
+            }
+            else if (uncapped_fps_radio.Checked)
+            {
+                stream.WriteString("1");
+            }
+            else if (limited_fps_radio.Checked)
+            {
+                stream.WriteString("2");
+            }
+            stream.WriteEndElement(); // fpslimit
+
+            stream.WriteStartElement("customfps");
+            stream.WriteString(limited_fps_value.Value.ToString());
+            stream.WriteEndElement(); // customfps
 
             stream.WriteStartElement("musicinjection");
             music_injector.SaveData(stream);
