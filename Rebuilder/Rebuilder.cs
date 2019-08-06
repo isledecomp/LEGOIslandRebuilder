@@ -743,11 +743,15 @@ namespace Rebuilder
             // Load patch data
             if (File.Exists(settings_path))
             {
-                XmlSerializer serializer = new XmlSerializer(typeof(PatchList));
-                TextReader reader = new StreamReader(settings_path);
-                patch_config = (PatchList)serializer.Deserialize(reader);
-                patch_view.SelectedObject = patch_config;
-                reader.Close();
+                try
+                {
+                    XmlSerializer serializer = new XmlSerializer(typeof(PatchList));
+                    TextReader reader = new StreamReader(settings_path);
+                    patch_config = (PatchList)serializer.Deserialize(reader);
+                    patch_view.SelectedObject = patch_config;
+                    reader.Close();
+                }
+                catch (InvalidOperationException) { }
             }
 
             settings_path = GetMusicSettingsPath();
