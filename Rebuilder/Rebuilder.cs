@@ -184,7 +184,7 @@ namespace Rebuilder
         PatchList patch_config = new PatchList();
 
         Rebuilder() {
-
+            Size = new Size(420, 420);
             Text = "LEGO Island Rebuilder";
             Icon = Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
 
