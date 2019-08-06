@@ -312,6 +312,9 @@ namespace Rebuilder
                 "This setting overrides that behavior and keeps LEGO Island active even when unfocused.\n\n" +
                 "NOTE: This currently only works in windowed mode.");
             tip.SetToolTip(upscale_bitmaps, "WARNING: This doesn't upscale the bitmaps' hitboxes yet and can make 2D areas like the Information Center difficult to navigate");
+            tip.SetToolTip(default_fps_radio, "LEGO Island's default frame rate cap is ~90 FPS");
+            tip.SetToolTip(uncapped_fps_radio, "Removes all frame rate caps");
+            tip.SetToolTip(limited_fps_radio, "Set a frame rate cap to use throughout the game");
 
             Controls.Add(grid);
             Controls.Add(advanced_grid);
