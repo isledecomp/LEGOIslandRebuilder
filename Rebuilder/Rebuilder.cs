@@ -25,7 +25,6 @@ namespace Rebuilder
         string jukebox_output;
 
         List<Process> processes = new List<Process>();
-        
 
         string run_button_run = "Run";
         string run_button_kill = "Kill";
