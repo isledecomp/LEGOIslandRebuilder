@@ -33,11 +33,6 @@ namespace Rebuilder
             Height = 540;
             CenterToScreen();
 
-            table.ReadOnly = true;
-            table.RowHeadersVisible = false;
-            table.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            table.AllowUserToResizeRows = false;
-
             table.CellClick += new DataGridViewCellEventHandler(TableCellClicked);
 
             table.Columns.Add("name", "Name");
@@ -81,6 +76,11 @@ namespace Rebuilder
 
             Shown += new EventHandler(OnShow);
             FormClosing += new FormClosingEventHandler(OnClose);
+
+            table.ReadOnly = true;
+            table.RowHeadersVisible = false;
+            table.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            table.AllowUserToResizeRows = false;
         }
 
         private void OnClose(object sender, FormClosingEventArgs e)

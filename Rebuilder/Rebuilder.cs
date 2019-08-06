@@ -62,7 +62,7 @@ namespace Rebuilder
 
             TableLayoutPanel grid = new TableLayoutPanel();
             grid.Dock = DockStyle.Fill;
-            grid.ColumnCount = 2;
+            grid.ColumnCount = 3;
             grid.AutoSize = true;
             
             // Create automatic evenly spaced layout
