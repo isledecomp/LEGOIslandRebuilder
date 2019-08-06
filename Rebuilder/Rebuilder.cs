@@ -5,42 +5,27 @@ using System.Windows.Forms;
 using System.IO;
 using System.Drawing;
 using System.Diagnostics;
+using System.ComponentModel;
 using Microsoft.Win32;
 using System.Xml;
+using System.Xml.Serialization;
 
 namespace Rebuilder
 {
-    class Rebuilder : Form
+    public class Rebuilder : Form
     {
-        TableLayoutPanel advanced_grid;
-
-        NumericUpDown turn_speed_control;
-        NumericUpDown movement_speed_control;
-        CheckBox redirect_saves;
-        CheckBox run_fullscreen;
-        CheckBox stay_active_when_window_is_defocused;
-
-        CheckBox override_resolution;
-        NumericUpDown res_width;
-        NumericUpDown res_height;
-        CheckBox upscale_bitmaps;
-
         Button run_button;
-        CheckBox advanced_button;
-
-        RadioButton default_fps_radio;
-        RadioButton uncapped_fps_radio;
-        RadioButton limited_fps_radio;
-        NumericUpDown limited_fps_value;
-
-        CheckBox multiple_instances;
+        Button run_additional_button;
 
         MusicInjector music_injector = new MusicInjector();
-        Button music_replacement_btn = new Button();
+
+        TabControl tabs;
+        PropertyGrid patch_view;
 
         string jukebox_output;
 
-        Process p = null;
+        List<Process> processes = new List<Process>();
+        
 
         string run_button_run = "Run";
         string run_button_kill = "Kill";
@@ -54,280 +39,234 @@ namespace Rebuilder
                 "/Program Files/LEGO Island"
             };
 
+        public enum FPSLimitType
+        {
+            Default,
+            Uncapped,
+            Limited
+        };
+
+        public class PatchList {
+            decimal turn_speed = 1.0M;
+            [Category("Controls")]
+            [DisplayName("Turn Speed")]
+            [Description("Set the turn speed multiplier. LEGO Island ties its turn speed to the frame rate which " +
+                "is too fast on modern PCs. Use this value to correct it.\n\n" +
+                "0.00 = No turning at all\n" +
+                "0.35 = Recommended for modern PCs\n" +
+                "1.00 = LEGO Island's default")]
+            public decimal TurnSpeed
+            {
+                get { return turn_speed; }
+                set { turn_speed = value; }
+            }
+
+            decimal move_speed = 1.0M;
+            [Category("Controls")]
+            [DisplayName("Move Speed")]
+            [Description("Set the movement speed multiplier. This value does not affect other racers so it can " +
+                "be used to cheat (or cripple) your chances in races.\n\n" +
+                "0.00 = No movement at all\n" +
+                "1.00 = LEGO Island's default")]
+            public decimal MoveSpeed
+            {
+                get { return move_speed; }
+                set { move_speed = value; }
+            }
+
+            bool full_screen = true;
+            [Category("Graphics")]
+            [DisplayName("Run in Full Screen")]
+            [Description("Allows you to change modes without administrator privileges and registry editing.")]
+            public bool FullScreen
+            {
+                get { return full_screen; }
+                set { full_screen = value; }
+            }
+
+            bool multiple_instances = false;
+            [Category("System")]
+            [DisplayName("Allow Multiple Instances")]
+            [Description("By default, LEGO Island will allow only one instance of itself to run. " +
+                "This patch allows infinite instances of LEGO Island to run.")]
+            public bool MultipleInstances
+            {
+                get { return multiple_instances; }
+                set { multiple_instances = value; }
+            }
+
+            bool stay_active_when_defocused = false;
+            [Category("System")]
+            [DisplayName("Stay Active When Defocused")]
+            [Description("By default, LEGO Island pauses when it's not the active window. " +
+                "This patch prevents that behavior.")]
+            public bool StayActiveWhenDefocused
+            {
+                get { return stay_active_when_defocused; }
+                set { stay_active_when_defocused = value; }
+            }
+
+            bool redirect_save_data = true;
+            [Category("System")]
+            [DisplayName("Redirect Save Files to %APPDATA%")]
+            [Description("By default LEGO Island saves its game data in its Program Files folder. In newer versions of " +
+                "Windows, this folder is considered privileged access, necessitating running LEGO Island as administrator " +
+                "to save here. This patch sets LEGO Island's save location to %APPDATA% instead, which is an accessible and " +
+                "standard location that most modern games and apps save to.")]
+            public bool RedirectSaveData
+            {
+                get { return redirect_save_data; }
+                set { redirect_save_data = value; }
+            }
+
+            FPSLimitType fps_limit_type = FPSLimitType.Default;
+            [Category("Graphics")]
+            [DisplayName("FPS Cap")]
+            [Description("Modify LEGO Island's frame rate cap")]
+            public FPSLimitType FPSLimit
+            {
+                get { return fps_limit_type; }
+                set { fps_limit_type = value; }
+            }
+
+            decimal custom_fps_limit = 24.0M;
+            [Category("Graphics")]
+            [DisplayName("FPS Cap - Custom Limit")]
+            [Description("Is 'FPS Cap' is set to 'Limited', this will be the frame rate used.")]
+            public decimal CustomFPS
+            {
+                get { return custom_fps_limit; }
+                set { custom_fps_limit = value; }
+            }
+
+            bool override_resolution = false;
+            [Category("Experimental (Use at your own risk)")]
+            [DisplayName("Override Resolution")]
+            [Description("Override LEGO Island's hardcoded 640x480 resolution with a custom resolution. " +
+                "NOTE: This patch is currently incomplete and buggy.")]
+            public bool OverrideResolution
+            {
+                get { return override_resolution; }
+                set { override_resolution = value; }
+            }
+
+            int resolution_width = 640;
+            [Category("Experimental (Use at your own risk)")]
+            [DisplayName("Override Resolution - Width:")]
+            [Description("If 'Override Resolution' is enabled, this is the screen resolution width to use instead.")]
+            public int ResolutionWidth
+            {
+                get { return resolution_width; }
+                set { resolution_width = value; }
+            }
+
+            int resolution_height = 480;
+            [Category("Experimental (Use at your own risk)")]
+            [DisplayName("Override Resolution - Height:")]
+            [Description("If 'Override Resolution' is enabled, this is the screen resolution height to use instead.")]
+            public int ResolutionHeight
+            {
+                get { return resolution_height; }
+                set { resolution_height = value; }
+            }
+
+            bool upscale_bitmaps = false;
+            [Category("Experimental (Use at your own risk)")]
+            [DisplayName("Override Resolution - Bitmap Upscale")]
+            [Description("WARNING: This doesn't upscale the bitmaps' hitboxes yet and can make 2D areas like the Information Center difficult to navigate.")]
+            public bool UpscaleBitmaps
+            {
+                get { return upscale_bitmaps; }
+                set { upscale_bitmaps = value; }
+            }
+        };
+
+        PatchList patch_config = new PatchList();
+
         Rebuilder() {
 
             Text = "LEGO Island Rebuilder";
-            MaximizeBox = false;
             Icon = Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
 
             TableLayoutPanel grid = new TableLayoutPanel();
             grid.Dock = DockStyle.Fill;
-            grid.ColumnCount = 3;
-            grid.AutoSize = true;
-            
-            // Create automatic evenly spaced layout
-            float f = 100f / grid.ColumnCount;
-            for (int i=0;i<grid.ColumnCount;i++)
-            {
-                grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, f));
-            }
 
             // Build standard layout
             grid.SuspendLayout();
-
-            int row = 0;
             
             Label title = new Label();
             title.Anchor = AnchorStyles.Left | AnchorStyles.Right;
             title.Text = "LEGO Island Rebuilder";
             title.Font = new Font(title.Font, FontStyle.Bold);
             title.TextAlign = ContentAlignment.MiddleCenter;
-            grid.Controls.Add(title, 0, row);
-            grid.SetColumnSpan(title, 2);
-
-            row++;
+            grid.Controls.Add(title, 0, 0);
 
             LinkLabel subtitle = new LinkLabel();
             subtitle.Anchor = AnchorStyles.Left | AnchorStyles.Right;
             subtitle.Text = "by MattKC (itsmattkc.com)";
             subtitle.TextAlign = ContentAlignment.MiddleCenter;
             subtitle.LinkClicked += new LinkLabelLinkClickedEventHandler(AuthorLinkClick);
-            grid.Controls.Add(subtitle, 0, row);
-            grid.SetColumnSpan(subtitle, 2);
+            grid.Controls.Add(subtitle, 0, 1);
+            
+            // Set up patch view
+            patch_view = new PropertyGrid();
+            patch_view.Dock = DockStyle.Fill;
+            patch_view.SelectedObject = patch_config;
 
-            row++;
+            // Set up tabs
+            tabs = new TabControl();
+            tabs.Dock = DockStyle.Fill;
 
-            Label turn_speed_lbl = new Label();
-            turn_speed_lbl.Text = "Turn Speed:";
-            turn_speed_lbl.Anchor = AnchorStyles.Left | AnchorStyles.Bottom;
-            grid.Controls.Add(turn_speed_lbl, 0, row);
+            TabPage patches_page = new TabPage("Patches");
+            patches_page.Controls.Add(patch_view);
+            tabs.Controls.Add(patches_page);
 
-            turn_speed_control = new NumericUpDown();
-            turn_speed_control.Minimum = 0;
-            turn_speed_control.Value = 1;
-            turn_speed_control.DecimalPlaces = 2;
-            turn_speed_control.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-            grid.Controls.Add(turn_speed_control, 1, row);
+            TabPage music_page = new TabPage("Music");
+            music_page.Controls.Add(music_injector);
+            music_page.Enter += new EventHandler(this.ShowMusicInjectorForm);
+            tabs.Controls.Add(music_page);
 
-            row++;
+            grid.Controls.Add(tabs, 0, 2);
 
-            Label movement_speed_lbl = new Label();
-            movement_speed_lbl.Text = "Movement Speed:";
-            movement_speed_lbl.Anchor = AnchorStyles.Left | AnchorStyles.Bottom;
-            grid.Controls.Add(movement_speed_lbl, 0, row);
-
-            movement_speed_control = new NumericUpDown();
-            movement_speed_control.Minimum = 0;
-            movement_speed_control.Value = 1;
-            movement_speed_control.DecimalPlaces = 2;
-            movement_speed_control.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-            grid.Controls.Add(movement_speed_control, 1, row);
-
-            row++;
-
-            Label music_replacement_lbl = new Label();
-            music_replacement_lbl.Text = "Music Injection:";
-            music_replacement_lbl.Anchor = AnchorStyles.Left | AnchorStyles.Bottom;
-            grid.Controls.Add(music_replacement_lbl, 0, row);
-
-            music_replacement_btn.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-            UpdateMusicInjectorBtnText();
-            music_replacement_btn.Click += new EventHandler(this.ShowMusicInjectorForm);
-            grid.Controls.Add(music_replacement_btn, 1, row);
-
-            row++;
-
-            run_fullscreen = new CheckBox();
-            run_fullscreen.Checked = true;
-            run_fullscreen.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-            run_fullscreen.Text = "Run in full screen";
-            grid.Controls.Add(run_fullscreen, 0, row);
-            grid.SetColumnSpan(run_fullscreen, 2);
-
-            row++;
-
-            multiple_instances = new CheckBox();
-            multiple_instances.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-            multiple_instances.Text = "Allow multiple instances";
-            grid.Controls.Add(multiple_instances, 0, row);
-            grid.SetColumnSpan(multiple_instances, 2);
-
-            row++;
-
-            stay_active_when_window_is_defocused = new CheckBox();
-            stay_active_when_window_is_defocused.Checked = false;
-            stay_active_when_window_is_defocused.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-            stay_active_when_window_is_defocused.Text = "Stay active when window is defocused";
-            grid.Controls.Add(stay_active_when_window_is_defocused, 0, row);
-            grid.SetColumnSpan(stay_active_when_window_is_defocused, 2);
-
-            row++;
-
-            redirect_saves = new CheckBox();
-            redirect_saves.Checked = true;
-            redirect_saves.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-            redirect_saves.Text = "Redirect save files to %APPDATA%";
-            grid.Controls.Add(redirect_saves, 0, row);
-            grid.SetColumnSpan(redirect_saves, 2);
-
-            row++;
-
-            GroupBox fps_group = new GroupBox();
-            fps_group.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-            fps_group.Text = "Frame Rate";
-
-            TableLayoutPanel fps_panel = new TableLayoutPanel();
-            fps_panel.Dock = DockStyle.Fill;
-            fps_group.Controls.Add(fps_panel);
-
-            default_fps_radio = new RadioButton();
-            default_fps_radio.Checked = true;
-            default_fps_radio.Text = "Default";
-            fps_panel.Controls.Add(default_fps_radio, 0, 0);
-
-            uncapped_fps_radio = new RadioButton();
-            uncapped_fps_radio.Text = "Uncapped";
-            fps_panel.Controls.Add(uncapped_fps_radio, 0, 1);
-
-            limited_fps_radio = new RadioButton();
-            limited_fps_radio.Text = "Limited:";
-            fps_panel.Controls.Add(limited_fps_radio, 0, 2);
-
-            limited_fps_value = new NumericUpDown();
-            limited_fps_value.Enabled = false;
-            limited_fps_value.Value = 24.0M;
-            fps_panel.Controls.Add(limited_fps_value, 1, 2);
-
-            limited_fps_radio.CheckedChanged += new System.EventHandler(this.FpsChanged);
-
-            grid.Controls.Add(fps_group, 0, row);
-            grid.SetColumnSpan(fps_group, 2);
-
-            row++;
+            TableLayoutPanel run_btns = new TableLayoutPanel();
+            run_btns.Dock = DockStyle.Fill;
+            run_btns.Padding = new Padding(0);
+            run_btns.Margin = new Padding(0);
+            run_btns.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 0.5F));
+            run_btns.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 0.5F));
 
             run_button = new Button();
             run_button.Text = run_button_run;
             run_button.Anchor = AnchorStyles.Left | AnchorStyles.Right;
             run_button.Click += new System.EventHandler(this.Run);
             run_button.Font = new Font(run_button.Font, FontStyle.Bold);
-            grid.Controls.Add(run_button, 0, row);
+            run_btns.Controls.Add(run_button, 0, 0);
 
-            advanced_button = new CheckBox();
-            advanced_button.Text = "Advanced";
-            advanced_button.TextAlign = ContentAlignment.MiddleCenter;
-            advanced_button.Appearance = System.Windows.Forms.Appearance.Button;
-            advanced_button.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-            advanced_button.CheckedChanged += new EventHandler(ToggleAdvanced);
-            grid.Controls.Add(advanced_button, 1, row);
+            run_additional_button = new Button();
+            run_additional_button.Visible = false;
+            run_additional_button.Text = "Run Additional";
+            run_additional_button.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            run_additional_button.Click += new System.EventHandler(this.RunAdditional);
+            run_btns.Controls.Add(run_additional_button, 1, 0);
+
+            grid.Controls.Add(run_btns, 0, 3);
+
+            grid.RowStyles.Clear();
+            grid.RowStyles.Add(new RowStyle(SizeType.Absolute, title.Height));
+            grid.RowStyles.Add(new RowStyle(SizeType.Absolute, subtitle.Height));
+            grid.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            grid.RowStyles.Add(new RowStyle(SizeType.Absolute, run_button.Height + run_button.Margin.Top + run_button.Margin.Bottom));
 
             grid.ResumeLayout(true);
 
-            // Build advanced layout
-            // Create automatic evenly spaced layout
-            advanced_grid = new TableLayoutPanel();
-            advanced_grid.Visible = false;
-            advanced_grid.Dock = DockStyle.Right;
-            advanced_grid.ColumnCount = 2;
-            advanced_grid.AutoSize = true;
-
-            f = 100f / advanced_grid.ColumnCount;
-            for (int i = 0; i < advanced_grid.ColumnCount; i++)
-            {
-                advanced_grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, f));
-            }
-
-            advanced_grid.SuspendLayout();
-
-            row = 0;
-
-            override_resolution = new CheckBox();
-            override_resolution.Text = "Override Resolution";
-            override_resolution.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-            override_resolution.CheckedChanged += new EventHandler(ToggleOverrideResolution);
-            advanced_grid.Controls.Add(override_resolution, 0, row);
-
-            row++;
-
-            Label res_width_lbl = new Label();
-            res_width_lbl.Text = "Width:";
-            res_width_lbl.Anchor = AnchorStyles.Left | AnchorStyles.Bottom;
-            advanced_grid.Controls.Add(res_width_lbl, 0, row);
-
-            res_width = new NumericUpDown();
-            res_width.Enabled = false;
-            res_width.Minimum = 0;
-            res_width.Maximum = int.MaxValue;
-            res_width.Value = 640;            
-            res_width.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-            advanced_grid.Controls.Add(res_width, 1, row);
-
-            row++;
-
-            Label res_height_lbl = new Label();
-            res_height_lbl.Text = "Height:";
-            res_height_lbl.Anchor = AnchorStyles.Left | AnchorStyles.Bottom;
-            advanced_grid.Controls.Add(res_height_lbl, 0, row);
-
-            res_height = new NumericUpDown();
-            res_height.Enabled = false;
-            res_height.Minimum = 0;
-            res_height.Maximum = int.MaxValue;
-            res_height.Value = 480;
-            res_height.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-            advanced_grid.Controls.Add(res_height, 1, row);
-
-            row++;
-
-            upscale_bitmaps = new CheckBox();
-            upscale_bitmaps.Enabled = false;
-            upscale_bitmaps.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-            upscale_bitmaps.Text = "Upscale Bitmaps";
-            advanced_grid.Controls.Add(upscale_bitmaps, 1, row);
-
-            row++;
-
-            Label advanced_warning_lbl = new Label();
-            advanced_warning_lbl.Text = "WARNING: These features are experimental and often incomplete. Use at your own risk.";
-            advanced_warning_lbl.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-            advanced_warning_lbl.Font = new Font(advanced_warning_lbl.Font, FontStyle.Bold);
-            advanced_grid.Controls.Add(advanced_warning_lbl, 0, row);
-            advanced_grid.SetColumnSpan(advanced_warning_lbl, 2);
-
-            advanced_grid.ResumeLayout(true);
-
-            // Set up tooltips
-            ToolTip tip = new ToolTip();
-            tip.SetToolTip(turn_speed_control, "Set the turn speed multiplier. LEGO Island ties its turn speed to the frame rate which is too fast on modern PCs. Use this value to correct it.\n\n" +
-                "0.00 = No turning at all\n" +
-                "0.35 = Recommended for modern PCs\n" +
-                "1.00 = LEGO Island's default");
-            tip.SetToolTip(movement_speed_control, "Set the movement speed multiplier. This value does not affect other racers so it can be used to cheat (or cripple) your chances in races.\n\n" +
-                "0.00 = No movement at all\n" +
-                "1.00 = LEGO Island's default");
-            tip.SetToolTip(run_fullscreen, "Override the registry check and run LEGO Island either full screen or windowed. " +
-                "Allows you to change modes without administrator privileges and registry editing.");
-            tip.SetToolTip(redirect_saves, "Redirect save data to a folder that's writable so games can be saved without administrator privileges.\n\n" +
-                "Saves will be stored in: " + Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\LEGO Island");
-            tip.SetToolTip(stay_active_when_window_is_defocused, "LEGO Island's default behavior is to pause all operations when defocused. " +
-                "This setting overrides that behavior and keeps LEGO Island active even when unfocused.\n\n" +
-                "NOTE: This currently only works in windowed mode.");
-            tip.SetToolTip(upscale_bitmaps, "WARNING: This doesn't upscale the bitmaps' hitboxes yet and can make 2D areas like the Information Center difficult to navigate");
-            tip.SetToolTip(default_fps_radio, "LEGO Island's default frame rate cap is ~90 FPS");
-            tip.SetToolTip(uncapped_fps_radio, "Removes all frame rate caps");
-            tip.SetToolTip(limited_fps_radio, "Set a frame rate cap to use throughout the game");
-
             Controls.Add(grid);
-            Controls.Add(advanced_grid);
-
-            AutoSize = true;
-            AutoSizeMode = AutoSizeMode.GrowAndShrink;
 
             ResumeLayout(true);
 
             CenterToScreen();
 
-            Shown += new EventHandler(OnStartup);
-            FormClosing += new FormClosingEventHandler(OnClosing);
+            Shown += new EventHandler(this.OnStartup);
+            FormClosing += new FormClosingEventHandler(this.OnClosing);
         }
 
         private void Write(FileStream fs, byte[] bytes, long pos = -1)
@@ -403,15 +342,15 @@ namespace Rebuilder
                 // Write turn/movement speed hack (this frees up 12 bytes of code)
                 long turn_speed_offset = aug_build ? 0x54083 : 0x54323;              
                 Write(lego1dll, new byte[] { 0x7E, 0x04, 0x2B, 0xD1, 0xEB, 0x0A, 0x89, 0xC8, 0xF7, 0xD8, 0x39, 0xD0, 0x7E, 0x44, 0x01, 0xCA, 0x29, 0xCE, 0x89, 0x54, 0x24, 0x04, 0xDB, 0x44, 0x24, 0x04, 0x89, 0x74, 0x24, 0x04, 0xDA, 0x74, 0x24, 0x04, 0x3D, 0xF0, 0x00, 0x00, 0x00, 0x74, 0x0A, 0xC7, 0x44, 0x24, 0x04 }, turn_speed_offset);                
-                WriteFloat(lego1dll, (float)turn_speed_control.Value);
+                WriteFloat(lego1dll, (float)patch_config.TurnSpeed);
                 Write(lego1dll, new byte[] { 0xEB, 0x08, 0xC7, 0x44, 0x24, 0x04 });
-                WriteFloat(lego1dll, (float)movement_speed_control.Value);
+                WriteFloat(lego1dll, (float)patch_config.MoveSpeed);
                 Write(lego1dll, new byte[] { 0xD8, 0x4C, 0x24, 0x04, 0xD8, 0x4C, 0x24, 0x14, 0xD9, 0x5C, 0x24, 0x04, 0xD9, 0x44, 0x24, 0x04, 0x5E, 0x83, 0xC4, 0x04, 0xC2, 0x0C, 0x00, 0xC7, 0x44, 0x24, 0x04, 0x00, 0x00, 0x00, 0x00, 0xD9, 0x44, 0x24, 0x04, 0x5E, 0x83, 0xC4, 0x04, 0xC2, 0x0C, 0x00, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 });
 
                 // Patch EXE to read from HKCU instead of HKLM
                 WriteByte(isleexe, 0x01, 0x1B5F);
 
-                if (stay_active_when_window_is_defocused.Checked)
+                if (patch_config.StayActiveWhenDefocused)
                 {
                     // Remove code that writes focus value to memory, effectively keeping it always true - frees up 3 bytes
                     Write(isleexe, new byte[] { 0x90, 0x90, 0x90 }, 0x1363);
@@ -423,7 +362,7 @@ namespace Rebuilder
                     WriteByte(lego1dll, 0x80, aug_build ? 0xAD7D3 : 0xADD43);
                 }
 
-                if (multiple_instances.Checked)
+                if (patch_config.MultipleInstances)
                 {
                     // LEGO Island uses FindWindowA in user32.dll to determine if it's already running, here we replace the call with moving 0x0 into EAX, simulating a NULL response from FindWindowA
                     WriteByte(isleexe, 0xEB, 0x10B5);
@@ -457,40 +396,44 @@ namespace Rebuilder
                 }
 
                 // FPS Patch
-                if (uncapped_fps_radio.Checked)
+                
+                if (patch_config.FPSLimit == FPSLimitType.Uncapped)
                 {
+                    // Write zero frame delay resulting in uncapped frame rate
                     WriteInt32(isleexe, 0, 0x4B4);
                 }
-                else if (limited_fps_radio.Checked)
+                else if (patch_config.FPSLimit == FPSLimitType.Limited)
                 {
-                    Int32 delay = (Int32) Math.Round(1000.0M / limited_fps_value.Value);
+                    // Calculate frame delay and write new limit
+                    Int32 delay = (Int32) Math.Round(1000.0M / patch_config.CustomFPS);
 
                     WriteInt32(isleexe, delay, 0x4B4);
                 }
-                if (uncapped_fps_radio.Checked || limited_fps_radio.Checked)
+                if (patch_config.FPSLimit != FPSLimitType.Default)
                 {
+                    // Disables 30 FPS limit in Information Center when using software mode
                     WriteManyBytes(lego1dll, 0x90, 8, aug_build ? 0x7A68B : 0x7ABAB);
                 }
 
                 // INCOMPLETE: Resolution hack:
-                if (override_resolution.Checked)
+                if (patch_config.OverrideResolution)
                 {
                     // Changes window size
-                    WriteInt32(isleexe, (Int32) res_width.Value, 0xE848);
-                    WriteInt32(isleexe, (Int32) res_height.Value, 0xE84C);
+                    WriteInt32(isleexe, (Int32)patch_config.ResolutionWidth, 0xE848);
+                    WriteInt32(isleexe, (Int32)patch_config.ResolutionHeight, 0xE84C);
 
                     // Changes D3D render size
-                    WriteInt32(isleexe, (Int32)res_width.Value-1, 0x4D0);
-                    WriteInt32(isleexe, (Int32)res_height.Value-1, 0x4D7);
+                    WriteInt32(isleexe, (Int32)patch_config.ResolutionWidth - 1, 0x4D0);
+                    WriteInt32(isleexe, (Int32)patch_config.ResolutionHeight - 1, 0x4D7);
 
                     // Write code to upscale the bitmaps
-                    if (upscale_bitmaps.Checked)
+                    if (patch_config.UpscaleBitmaps)
                     {
                         Write(lego1dll, new byte[] { 0xE9, 0x2D, 0x01, 0x00, 0x00, 0x8B, 0x56, 0x1C, 0x6A, 0x00, 0x8D, 0x45, 0xE4, 0xF6, 0x42, 0x30, 0x08, 0x74, 0x07, 0x68, 0x00, 0x80, 0x00, 0x00, 0xEB, 0x02, 0x6A, 0x00, 0x8B, 0x3B, 0x50, 0x51, 0x8D, 0x4D, 0xD4, 0x51, 0x53, 0x53, 0x50, 0x68 }, 0xB20E9);
 
-                        WriteFloat(lego1dll, (float) res_height.Value / 480.0f);
+                        WriteFloat(lego1dll, (float)patch_config.ResolutionHeight / 480.0f);
 
-                        Int32 x_offset = (Int32)Math.Round((res_width.Value - (res_height.Value / 3 * 4))/2);
+                        Int32 x_offset = (Int32)Math.Round((patch_config.ResolutionWidth - (patch_config.ResolutionHeight / 3.0 * 4.0))/2.0);
                         
 
                         Write(lego1dll, new byte[] { 0xDB, 0x45, 0xD4, 0xD8, 0x0C, 0x24, 0xDB, 0x5D, 0xD4, 0xDB, 0x45, 0xD8, 0xD8, 0x0C, 0x24, 0xDB, 0x5D, 0xD8, 0xDB, 0x45, 0xDC, 0xD8, 0x0C, 0x24, 0xDB, 0x5D, 0xDC, 0xDB, 0x45, 0xE0, 0xD8, 0x0C, 0x24, 0xDB, 0x5D, 0xE0, 0x58, 0x8B, 0x45, 0xD4, 0x05 });
@@ -511,9 +454,9 @@ namespace Rebuilder
                     }
                 }
 
-                if (aug_build && redirect_saves.Checked)
+                if (aug_build && patch_config.RedirectSaveData)
                 {
-                    incompatibilities += redirect_saves.Text + "\n";
+                    incompatibilities += patch_config.RedirectSaveData.ToString() + "\n";
                 }
             }
 
@@ -541,10 +484,10 @@ namespace Rebuilder
                     CopyRegistryKey(src, dst);
 
                     // Set full screen value
-                    dst.SetValue("Full Screen", run_fullscreen.Checked ? "YES" : "NO");
+                    dst.SetValue("Full Screen", patch_config.FullScreen ? "YES" : "NO");
 
                     // Redirect save path
-                    if (redirect_saves.Checked)
+                    if (patch_config.RedirectSaveData)
                     {
                         string new_save_dir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\LEGO Island\\";
                         Directory.CreateDirectory(new_save_dir);
@@ -564,34 +507,9 @@ namespace Rebuilder
 
         private void ShowMusicInjectorForm(object sender, EventArgs e)
         {
-            //music_changed = true;
-            music_injector.ShowDialog();
-            UpdateMusicInjectorBtnText();
-        }
-
-        private void UpdateMusicInjectorBtnText()
-        {
-            int count = music_injector.ReplaceCount();
-            string btn_text = count + " song";
-            if (count != 1)
+            if (!music_injector.Prepare())
             {
-                btn_text += "s";
             }
-            btn_text += " replaced";
-            music_replacement_btn.Text = btn_text;
-        }
-
-        private void ToggleAdvanced(object sender, EventArgs e)
-        {
-            advanced_grid.Visible = advanced_button.Checked;
-            //CenterToScreen();
-        }
-
-        private void ToggleOverrideResolution(Object sender, EventArgs e)
-        {
-            res_width.Enabled = override_resolution.Checked;
-            res_height.Enabled = override_resolution.Checked;
-            upscale_bitmaps.Enabled = override_resolution.Checked;
         }
 
         private void CopyRegistryKey(RegistryKey src, RegistryKey dst)
@@ -613,16 +531,23 @@ namespace Rebuilder
             }
         }
 
-        private void FpsChanged(object sender, EventArgs e)
+        private void RunAdditional(object sender, EventArgs e)
         {
-            limited_fps_value.Enabled = limited_fps_radio.Checked;
+            Process p = Process.Start(processes[0].StartInfo);
+            p.EnableRaisingEvents = true;
+            p.Exited += new EventHandler(ProcessExit);
+            processes.Add(p);
         }
 
         private void Run(object sender, EventArgs e)
         {
-            if (p != null)
+            if (processes.Count > 0)
             {
-                p.Kill();
+                foreach (Process p in processes)
+                {
+                    p.Kill();
+                }
+                processes.Clear();
                 return;
             }
 
@@ -726,7 +651,7 @@ namespace Rebuilder
                     //string compat_string = "HIGHDPIAWARE";
                     string compat_string = "HIGHDPIAWARE DWM8And16BitMitigation";
                     
-                    if (!run_fullscreen.Checked)
+                    if (!patch_config.FullScreen)
                     {
                         if (System.Environment.OSVersion.Version.Major < 8)
                         {
@@ -740,7 +665,7 @@ namespace Rebuilder
                         }
                     }
 
-                    if (!redirect_saves.Checked || aug_build)
+                    if (!patch_config.RedirectSaveData || aug_build)
                     {
                         compat_string += " RUNASADMIN";
                     }
@@ -754,23 +679,38 @@ namespace Rebuilder
 
             try
             {
-                p = Process.Start(start_info);
+                Process p = Process.Start(start_info);
+                p.EnableRaisingEvents = true;
+                p.Exited += new EventHandler(ProcessExit);
+                processes.Add(p);
+
+                run_button.Text = run_button_kill;
+                if (patch_config.MultipleInstances)
+                {
+                    run_additional_button.Visible = true;
+                }
             }
             catch
             {
-                p = null;
                 return;
             }
-            
-            p.EnableRaisingEvents = true;
-            p.Exited += new EventHandler(ProcessExit);
-            run_button.Text = run_button_kill;
         }
 
         private void ProcessExit(object sender, EventArgs e)
         {
-            run_button.BeginInvoke((MethodInvoker)delegate () { run_button.Text = run_button_run; });
-            p = null;
+            run_button.BeginInvoke((MethodInvoker)delegate () {
+                run_button.Text = run_button_run;
+                run_additional_button.Visible = false;
+            });
+
+            for (int i=0;i<processes.Count;i++)
+            {
+                if (processes[i] == sender)
+                {
+                    processes.RemoveAt(i);
+                    break;
+                }
+            }
         }
 
         private void AuthorLinkClick(object sender, LinkLabelLinkClickedEventArgs e)
@@ -778,95 +718,52 @@ namespace Rebuilder
             Process.Start("http://www.itsmattkc.com/");
         }
 
-        private string GetSettingsPath()
+        private string GetSettingsDir()
         {
-            string settings_path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "/LEGOIslandRebuilder/settings.xml";
+            string settings_path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "/LEGOIslandRebuilder";
 
             Directory.CreateDirectory(Path.GetDirectoryName(settings_path));
 
             return settings_path;
         }
 
+        private string GetSettingsPath()
+        {
+            return GetSettingsDir() + "/settings.xml";
+        }
+
+        private string GetMusicSettingsPath()
+        {
+            return GetSettingsDir() + "/music.xml";
+        }
+
         private void OnStartup(object sender, EventArgs e)
         {
-            // Load settings
             string settings_path = GetSettingsPath();
 
+            // Load patch data
+            if (File.Exists(settings_path))
+            {
+                XmlSerializer serializer = new XmlSerializer(typeof(PatchList));
+                TextReader reader = new StreamReader(settings_path);
+                patch_config = (PatchList)serializer.Deserialize(reader);
+                patch_view.SelectedObject = patch_config;
+                reader.Close();
+            }
+
+            settings_path = GetMusicSettingsPath();
+
+            // Load music patch data
             if (File.Exists(settings_path))
             {
                 XmlReader stream = XmlReader.Create(settings_path);
 
                 while (stream.Read())
                 {
-                    if (stream.NodeType == XmlNodeType.Element && stream.IsStartElement())
+                    if (stream.NodeType == XmlNodeType.Element && stream.IsStartElement() && stream.Name == "music")
                     {
-                        if (stream.Name == "turnspeed")
-                        {
-                            stream.Read();
-                            turn_speed_control.Value = decimal.Parse(stream.Value);
-                        }
-                        else if (stream.Name == "movespeed")
-                        {
-                            stream.Read();
-                            movement_speed_control.Value = decimal.Parse(stream.Value);
-                        }
-                        else if (stream.Name == "fullscreen")
-                        {
-                            stream.Read();
-                            run_fullscreen.Checked = bool.Parse(stream.Value);
-                        }
-                        else if (stream.Name == "stayactive")
-                        {
-                            stream.Read();
-                            stay_active_when_window_is_defocused.Checked = bool.Parse(stream.Value);
-                        }
-                        else if (stream.Name == "redirecttoappdata")
-                        {
-                            stream.Read();
-                            redirect_saves.Checked = bool.Parse(stream.Value);
-                        }
-                        else if (stream.Name == "showadvanced")
-                        {
-                            stream.Read();
-                            advanced_button.Checked = bool.Parse(stream.Value);
-                        }
-                        else if (stream.Name == "overrideres")
-                        {
-                            stream.Read();
-                            override_resolution.Checked = bool.Parse(stream.Value);
-                        }
-                        else if (stream.Name == "overridereswidth")
-                        {
-                            stream.Read();
-                            res_width.Value = decimal.Parse(stream.Value);
-                        }
-                        else if (stream.Name == "overrideresheight")
-                        {
-                            stream.Read();
-                            res_height.Value = decimal.Parse(stream.Value);
-                        }
-                        else if (stream.Name == "musicinjection")
-                        {
-                            music_injector.LoadData(stream);
-                            UpdateMusicInjectorBtnText();
-                        }
-                        else if (stream.Name == "upscalebitmaps")
-                        {
-                            stream.Read();
-                            upscale_bitmaps.Checked = bool.Parse(stream.Value);
-                        }
-                        else if (stream.Name == "fpslimit")
-                        {
-                            stream.Read();
-                            default_fps_radio.Checked = (stream.Value == "0");
-                            uncapped_fps_radio.Checked = (stream.Value == "1");
-                            limited_fps_radio.Checked = (stream.Value == "2");
-                        }
-                        else if (stream.Name == "customfps")
-                        {
-                            stream.Read();
-                            limited_fps_value.Value = decimal.Parse(stream.Value);
-                        }
+                        music_injector.LoadData(stream);
+                        break;
                     }
                 }
 
@@ -876,84 +773,20 @@ namespace Rebuilder
 
         private void OnClosing(object sender, FormClosingEventArgs e)
         {
-            // Save settings
+            // Load patch data
+            XmlSerializer serializer = new XmlSerializer(typeof(PatchList));
+            TextWriter writer = new StreamWriter(GetSettingsPath());
+            serializer.Serialize(writer, patch_config);
+            writer.Close();
 
-            string settings_path = GetSettingsPath();
-
-            XmlWriter stream = XmlWriter.Create(settings_path);
-
-            stream.WriteStartDocument();
-
-            stream.WriteStartElement("settings");
-
-            stream.WriteStartElement("turnspeed");
-            stream.WriteString(turn_speed_control.Value.ToString());
-            stream.WriteEndElement(); // turnspeed
-
-            stream.WriteStartElement("movespeed");
-            stream.WriteString(movement_speed_control.Value.ToString());
-            stream.WriteEndElement(); // movespeed
-
-            stream.WriteStartElement("fullscreen");
-            stream.WriteString(run_fullscreen.Checked.ToString());
-            stream.WriteEndElement(); // fullscreen
-
-            stream.WriteStartElement("stayactive");
-            stream.WriteString(stay_active_when_window_is_defocused.Checked.ToString());
-            stream.WriteEndElement(); // stayactive
-
-            stream.WriteStartElement("redirecttoappdata");
-            stream.WriteString(redirect_saves.Checked.ToString());
-            stream.WriteEndElement(); // redirecttoappdata
-
-            stream.WriteStartElement("showadvanced");
-            stream.WriteString(advanced_button.Checked.ToString());
-            stream.WriteEndElement(); // showadvanced
-
-            stream.WriteStartElement("overrideres");
-            stream.WriteString(override_resolution.Checked.ToString());
-            stream.WriteEndElement(); // overrideres
-
-            stream.WriteStartElement("overridereswidth");
-            stream.WriteString(res_width.Value.ToString());
-            stream.WriteEndElement(); // overridereswidth
-
-            stream.WriteStartElement("overrideresheight");
-            stream.WriteString(res_height.Value.ToString());
-            stream.WriteEndElement(); // overrideresheight
-
-            stream.WriteStartElement("upscalebitmaps");
-            stream.WriteString(upscale_bitmaps.Checked.ToString());
-            stream.WriteEndElement(); // upscalebitmaps
-
-            stream.WriteStartElement("fpslimit");
-            if (default_fps_radio.Checked)
-            {
-                stream.WriteString("0");
-            }
-            else if (uncapped_fps_radio.Checked)
-            {
-                stream.WriteString("1");
-            }
-            else if (limited_fps_radio.Checked)
-            {
-                stream.WriteString("2");
-            }
-            stream.WriteEndElement(); // fpslimit
-
-            stream.WriteStartElement("customfps");
-            stream.WriteString(limited_fps_value.Value.ToString());
-            stream.WriteEndElement(); // customfps
-
-            stream.WriteStartElement("musicinjection");
-            music_injector.SaveData(stream);
-            stream.WriteEndElement(); // musicinjection
-
-            stream.WriteEndElement(); // settings
-
-            stream.WriteEndDocument();
-
-            stream.Close();
+            // Load music injection data
+            XmlWriter music_writer = XmlWriter.Create(GetMusicSettingsPath());
+            music_writer.WriteStartDocument();
+            music_writer.WriteStartElement("music");
+            music_injector.SaveData(music_writer);
+            music_writer.WriteEndElement(); // music
+            music_writer.WriteEndDocument();
+            music_writer.Close();
         }
 
         [STAThread]

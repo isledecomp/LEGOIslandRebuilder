@@ -10,12 +10,11 @@ using Microsoft.Win32;
 
 namespace Rebuilder
 {
-    class MusicInjector : Form
+    class MusicInjector : DataGridView
     {
         string jukebox_si_path = "";
         string temp_extract_path = "";
 
-        DataGridView table = new DataGridView();
         List<string> filenames = new List<string>();
 
         SoundPlayer sound_player = new SoundPlayer();
@@ -26,17 +25,17 @@ namespace Rebuilder
 
         public MusicInjector()
         {
-            Text = "Music Injector";
+            /*Text = "Music Injector";
             Icon = Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
             Visible = false;
             Width = 720;
             Height = 540;
-            CenterToScreen();
+            CenterToScreen();*/
 
-            table.CellClick += new DataGridViewCellEventHandler(TableCellClicked);
+            CellClick += new DataGridViewCellEventHandler(TableCellClicked);
 
-            table.Columns.Add("name", "Name");
-            table.Columns.Add("filename", "Filename");
+            Columns.Add("name", "Name");
+            Columns.Add("filename", "Filename");
 
             // Create Extract button column
             DataGridViewButtonColumn play_col = new DataGridViewButtonColumn();
@@ -45,7 +44,7 @@ namespace Rebuilder
             play_col.Text = "Play";
             play_col.Name = "play";
             play_col.UseColumnTextForButtonValue = true;
-            table.Columns.Add(play_col);
+            Columns.Add(play_col);
 
             // Create Extract button column
             DataGridViewButtonColumn extract_col = new DataGridViewButtonColumn();
@@ -54,7 +53,7 @@ namespace Rebuilder
             extract_col.Text = "Extract";
             extract_col.Name = "extract";
             extract_col.UseColumnTextForButtonValue = true;
-            table.Columns.Add(extract_col);
+            Columns.Add(extract_col);
 
             // Create Replace button column
             DataGridViewButtonColumn replace_col = new DataGridViewButtonColumn();
@@ -63,33 +62,22 @@ namespace Rebuilder
             replace_col.Text = "Replace";
             replace_col.Name = "replace";
             replace_col.UseColumnTextForButtonValue = true;
-            table.Columns.Add(replace_col);
+            Columns.Add(replace_col);
 
-            foreach (DataGridViewColumn col in table.Columns)
+            foreach (DataGridViewColumn col in Columns)
             {
                 col.SortMode = DataGridViewColumnSortMode.NotSortable;
             }
 
-            table.Dock = DockStyle.Fill;
+            Dock = DockStyle.Fill;
 
-            Controls.Add(table);
-
-            Shown += new EventHandler(OnShow);
-            FormClosing += new FormClosingEventHandler(OnClose);
-
-            table.ReadOnly = true;
-            table.RowHeadersVisible = false;
-            table.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            table.AllowUserToResizeRows = false;
+            ReadOnly = true;
+            RowHeadersVisible = false;
+            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            AllowUserToResizeRows = false;
         }
 
-        private void OnClose(object sender, FormClosingEventArgs e)
-        {
-            ConvertTableToReplaceData();
-            sound_player.Stop();
-        }
-
-        private bool Prepare()
+        public bool Prepare()
         {
             if (string.IsNullOrEmpty(jukebox_si_path))
             {
@@ -111,15 +99,6 @@ namespace Rebuilder
                 }
             }
             return true;
-        }
-
-        private void OnShow(object sender, EventArgs e)
-        {
-            if (!Prepare())
-            {
-                Close();
-                return;
-            }
         }
 
         private void FindJukeboxSI()
@@ -227,7 +206,7 @@ namespace Rebuilder
                     {
                         last_played_row = e.RowIndex;
 
-                        string cell_fn = table.Rows[e.RowIndex].Cells[1].Value.ToString();
+                        string cell_fn = Rows[e.RowIndex].Cells[1].Value.ToString();
                         string play_fn;
                         if (cell_fn == fn)
                         {
@@ -269,7 +248,7 @@ namespace Rebuilder
                     break;
                 case 4: // REPLACE
 
-                    bool replace = (table.Rows[e.RowIndex].Cells[1].Value.ToString() == filenames[e.RowIndex]);
+                    bool replace = (Rows[e.RowIndex].Cells[1].Value.ToString() == filenames[e.RowIndex]);
 
                     if (last_played_row == e.RowIndex)
                     {
@@ -296,20 +275,22 @@ namespace Rebuilder
                             ofd.Filter = "WAVE Audio (*.wav)|*.wav";
                             if (ofd.ShowDialog() == DialogResult.OK)
                             {
-                                SetCellBold(table.Rows[e.RowIndex].Cells[0]);
-                                SetCellBold(table.Rows[e.RowIndex].Cells[1]);
+                                SetCellBold(Rows[e.RowIndex].Cells[0]);
+                                SetCellBold(Rows[e.RowIndex].Cells[1]);
 
-                                table.Rows[e.RowIndex].Cells[1].Value = ofd.FileName;
+                                Rows[e.RowIndex].Cells[1].Value = ofd.FileName;
                             }
                         }
                     }
                     else
                     {
-                        SetCellNormal(table.Rows[e.RowIndex].Cells[0]);
-                        SetCellNormal(table.Rows[e.RowIndex].Cells[1]);
+                        SetCellNormal(Rows[e.RowIndex].Cells[0]);
+                        SetCellNormal(Rows[e.RowIndex].Cells[1]);
 
-                        table.Rows[e.RowIndex].Cells[1].Value = filenames[e.RowIndex];
+                        Rows[e.RowIndex].Cells[1].Value = filenames[e.RowIndex];
                     }
+
+                    ConvertTableToReplaceData();
                     
                     break;
             }
@@ -394,7 +375,7 @@ namespace Rebuilder
                     byte[] copied_bytes = new byte[16];
                     stream.Read(copied_bytes, 0, 16);
 
-                    table.Rows.Add(wav_name, wav_fn);
+                    Rows.Add(wav_name, wav_fn);
                     filenames.Add(wav_fn);
 
                     using (FileStream wav_out = new FileStream(wav_path, FileMode.Create, FileAccess.Write))
@@ -480,10 +461,10 @@ namespace Rebuilder
             {
                 int index = filenames.IndexOf(replace_dst[i]);
 
-                table.Rows[index].Cells[1].Value = replace_src[i];
+                Rows[index].Cells[1].Value = replace_src[i];
 
-                SetCellBold(table.Rows[index].Cells[0]);
-                SetCellBold(table.Rows[index].Cells[1]);
+                SetCellBold(Rows[index].Cells[0]);
+                SetCellBold(Rows[index].Cells[1]);
             }
 
             //Console.WriteLine("\nDone! Extracted " + file_count + " files\n");
@@ -552,9 +533,9 @@ namespace Rebuilder
 
             for (int i = 0; i < filenames.Count; i++)
             {
-                if (table.Rows[i].Cells[1].Value.ToString() != filenames[i])
+                if (Rows[i].Cells[1].Value.ToString() != filenames[i])
                 {
-                    replace_src.Add(table.Rows[i].Cells[1].Value.ToString());
+                    replace_src.Add(Rows[i].Cells[1].Value.ToString());
                     replace_dst.Add(filenames[i]);
                 }
             }
