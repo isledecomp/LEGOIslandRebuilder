@@ -2,7 +2,7 @@
 
 A launcher and mod/patch tool for the 1997 video game *LEGO Island*.
 
-![Screenshot](https://i.imgur.com/o9wN3B9.png)
+![Screenshot](https://i.imgur.com/vAXy68m.png)
 
 [Homepage](http://itsmattkc.com/rebuilder) | [Download](https://github.com/itsmattkc/LEGOIslandRebuilder/releases/download/continuous/Rebuilder.exe) | [Patreon](https://www.patreon.com/mattkc)
 
