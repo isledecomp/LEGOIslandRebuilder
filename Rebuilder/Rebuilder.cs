@@ -721,7 +721,7 @@ namespace Rebuilder
         {
             string settings_path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "/LEGOIslandRebuilder";
 
-            Directory.CreateDirectory(Path.GetDirectoryName(settings_path));
+            Directory.CreateDirectory(settings_path);
 
             return settings_path;
         }
