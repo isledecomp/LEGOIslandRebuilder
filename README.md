@@ -14,4 +14,4 @@ Tested with the following versions of LEGO Island ([identify your version](http:
 * English v1.0 / August Build
 * English v1.1 / September Build
 
-Research done towards developing this tool is documented at [the LEGO Island Modding Wiki](http://itsmattkc.com/li/).
+Research done towards developing this tool is documented at [the LEGO Island Modding Wiki](http://www.legoisland.org/).
