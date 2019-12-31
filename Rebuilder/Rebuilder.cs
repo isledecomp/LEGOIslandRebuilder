@@ -327,6 +327,11 @@ namespace Rebuilder
             return (MessageBox.Show("The following patches you've chosen are not compatible with this version of LEGO Island:\n\n" + incompatibilities + "\nContinue without them?", "Compatibility", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes);
         }
 
+        private static string GetDisplayNameOfProperty(string property)
+        {
+            return ((DisplayNameAttribute)typeof(PatchList).GetProperty("RedirectSaveData").GetCustomAttributes(typeof(DisplayNameAttribute), true)[0]).DisplayName;
+        }
+
         private bool Patch(string source_dir, string dir)
         {
             string incompatibilities = "";
@@ -458,7 +463,7 @@ namespace Rebuilder
 
                 if (aug_build && patch_config.RedirectSaveData)
                 {
-                    incompatibilities += patch_config.RedirectSaveData.ToString() + "\n";
+                    incompatibilities += "- " + GetDisplayNameOfProperty("RedirectSaveData") + "\n";
                 }
             }
 
