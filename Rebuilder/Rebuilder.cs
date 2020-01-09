@@ -202,7 +202,7 @@ namespace Rebuilder
 
             LinkLabel subtitle = new LinkLabel();
             subtitle.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-            subtitle.Text = "www.legoisland.org";
+            subtitle.Text = "by MattKC (www.legoisland.org)";
             subtitle.TextAlign = ContentAlignment.MiddleCenter;
             subtitle.LinkClicked += new LinkLabelLinkClickedEventHandler(AuthorLinkClick);
             grid.Controls.Add(subtitle, 0, 1);
