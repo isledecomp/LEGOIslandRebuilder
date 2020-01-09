@@ -202,7 +202,7 @@ namespace Rebuilder
 
             LinkLabel subtitle = new LinkLabel();
             subtitle.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-            subtitle.Text = "by MattKC (itsmattkc.com)";
+            subtitle.Text = "www.legoisland.org";
             subtitle.TextAlign = ContentAlignment.MiddleCenter;
             subtitle.LinkClicked += new LinkLabelLinkClickedEventHandler(AuthorLinkClick);
             grid.Controls.Add(subtitle, 0, 1);
@@ -722,7 +722,7 @@ namespace Rebuilder
 
         private void AuthorLinkClick(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            Process.Start("http://www.itsmattkc.com/");
+            Process.Start("https://www.legoisland.org/");
         }
 
         private string GetSettingsDir()
