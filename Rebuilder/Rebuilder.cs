@@ -178,9 +178,24 @@ namespace Rebuilder
                 get { return upscale_bitmaps; }
                 set { upscale_bitmaps = value; }
             }
+
+            bool disable_autofinish_building = false;
+            [Category("Gameplay")]
+            [DisplayName("Disable Auto-Finish Building Section")]
+            [Description("In LEGO Island v1.1, placing the last block when building will automatically end the building section. While convenient, " +
+                "this prevents players from making any further changes are placing the last brick. It also notably defies what Bill Ding says - you " +
+                "don't hit the triangle when you're finished building.\n\nThis patch restores the functionality in v1.0 where placing the last block " +
+                "will not automatically finish the build section.")]
+            public bool DisableAutoFinishBuilding
+            {
+                get { return disable_autofinish_building; }
+                set { disable_autofinish_building = value; }
+            }
         };
 
         PatchList patch_config = new PatchList();
+
+        LinkLabel update;
 
         Rebuilder() {
             Size = new Size(420, 420);
@@ -206,7 +221,15 @@ namespace Rebuilder
             subtitle.TextAlign = ContentAlignment.MiddleCenter;
             subtitle.LinkClicked += new LinkLabelLinkClickedEventHandler(AuthorLinkClick);
             grid.Controls.Add(subtitle, 0, 1);
-            
+
+            update = new LinkLabel();
+            update.Visible = false;
+            update.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            update.Text = "An update is available!";
+            update.TextAlign = ContentAlignment.MiddleCenter;
+            update.LinkClicked += new LinkLabelLinkClickedEventHandler(AuthorLinkClick);
+            grid.Controls.Add(update, 0, 2);
+
             // Set up patch view
             patch_view = new PropertyGrid();
             patch_view.Dock = DockStyle.Fill;
@@ -225,7 +248,7 @@ namespace Rebuilder
             music_page.Enter += new EventHandler(this.ShowMusicInjectorForm);
             tabs.Controls.Add(music_page);
 
-            grid.Controls.Add(tabs, 0, 2);
+            grid.Controls.Add(tabs, 0, 3);
 
             TableLayoutPanel run_btns = new TableLayoutPanel();
             run_btns.Dock = DockStyle.Fill;
@@ -248,11 +271,12 @@ namespace Rebuilder
             run_additional_button.Click += new System.EventHandler(this.RunAdditional);
             run_btns.Controls.Add(run_additional_button, 1, 0);
 
-            grid.Controls.Add(run_btns, 0, 3);
+            grid.Controls.Add(run_btns, 0, 4);
 
             grid.RowStyles.Clear();
             grid.RowStyles.Add(new RowStyle(SizeType.Absolute, title.Height));
             grid.RowStyles.Add(new RowStyle(SizeType.Absolute, subtitle.Height));
+            grid.RowStyles.Add(new RowStyle(SizeType.Absolute, update.Height));
             grid.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             grid.RowStyles.Add(new RowStyle(SizeType.Absolute, run_button.Height + run_button.Margin.Top + run_button.Margin.Bottom));
 
@@ -464,6 +488,22 @@ namespace Rebuilder
                 if (aug_build && patch_config.RedirectSaveData)
                 {
                     incompatibilities += "- " + GetDisplayNameOfProperty("RedirectSaveData") + "\n";
+                }
+
+                if (patch_config.DisableAutoFinishBuilding)
+                {
+                    if (aug_build)
+                    {
+                        incompatibilities += "- " + GetDisplayNameOfProperty("DisableAutoFinishBuilding") + "\n";
+                    }
+                    else
+                    {
+                        // Disables cutscene/exit code
+                        WriteManyBytes(lego1dll, 0x90, 5, 0x22C0B);
+
+                        // Disables flag that freezes the UI on completion
+                        WriteManyBytes(lego1dll, 0x90, 7, 0x22C6A);
+                    }
                 }
             }
 
@@ -723,6 +763,11 @@ namespace Rebuilder
         private void AuthorLinkClick(object sender, LinkLabelLinkClickedEventArgs e)
         {
             Process.Start("https://www.legoisland.org/");
+        }
+
+        private void UpdateLinkClick(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            Process.Start("https://www.legoisland.org/rebuilder");
         }
 
         private string GetSettingsDir()
