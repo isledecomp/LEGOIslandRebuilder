@@ -183,7 +183,7 @@ namespace Rebuilder
             [Category("Gameplay")]
             [DisplayName("Disable Auto-Finish Building Section")]
             [Description("In LEGO Island v1.1, placing the last block when building will automatically end the building section. While convenient, " +
-                "this prevents players from making any further changes are placing the last brick. It also notably defies what Bill Ding says - you " +
+                "this prevents players from making any further changes placing the last brick. It also notably defies what Bill Ding says - you " +
                 "don't hit the triangle when you're finished building.\n\nThis patch restores the functionality in v1.0 where placing the last block " +
                 "will not automatically finish the build section.")]
             public bool DisableAutoFinishBuilding
