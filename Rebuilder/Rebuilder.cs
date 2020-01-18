@@ -191,6 +191,17 @@ namespace Rebuilder
                 get { return disable_autofinish_building; }
                 set { disable_autofinish_building = value; }
             }
+
+            decimal fov_multiplier = 0.1M;
+            [Category("Graphics")]
+            [DisplayName("Field of View Adjustment")]
+            [Description("Globally adjusts the field of view by a multiplier\n\n" +
+                "0.1 = Default (smaller than 0.1 is more zoomed in, larger than 0.1 is more zoomed out")]
+            public decimal FOVMultiplier
+            {
+                get { return fov_multiplier; }
+                set { fov_multiplier = value; }
+            }
         };
 
         PatchList patch_config = new PatchList();
@@ -426,8 +437,23 @@ namespace Rebuilder
                     WriteString(lego1dll, jukebox_path, aug_build ? 0xD28F6 : 0xD2E66);
                 }
 
+                // FOV Patch
+                WriteByte(lego1dll, 0xEB, aug_build ? 0x0 : 0xA22D7);
+                WriteByte(lego1dll, 0xC9);
+                //WriteByte(lego1dll, 0x90);
+                //WriteByte(lego1dll, 0x90);
+
+                WriteByte(lego1dll, 0x68, aug_build ? 0x0 : 0xA22A2);
+                WriteFloat(lego1dll, (float)patch_config.FOVMultiplier);
+                WriteByte(lego1dll, 0xD8);
+                WriteByte(lego1dll, 0x0C);
+                WriteByte(lego1dll, 0x24);
+                WriteByte(lego1dll, 0x5E);
+                WriteByte(lego1dll, 0xEB);
+                WriteByte(lego1dll, 0x2E);
+
                 // FPS Patch
-                
+
                 if (patch_config.FPSLimit == FPSLimitType.Uncapped)
                 {
                     // Write zero frame delay resulting in uncapped frame rate
