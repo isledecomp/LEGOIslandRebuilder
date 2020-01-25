@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Windows.Forms;
@@ -30,6 +30,7 @@ namespace Rebuilder
         string run_button_kill = "Kill";
 
         bool aug_build = false;
+        bool autorun = false;
 
         public static string[] standard_hdd_dirs = {
                 "C:/Program Files (x86)/LEGO Island",
@@ -301,6 +302,17 @@ namespace Rebuilder
 
             Shown += new EventHandler(this.OnStartup);
             FormClosing += new FormClosingEventHandler(this.OnClosing);
+
+            string[] args = Environment.GetCommandLineArgs();
+
+            foreach (string arg in args)
+            {
+                if (arg.ToLower() == "-autorun")
+                {
+                    autorun = true;
+                    Run(null, null);
+                }
+            }
         }
 
         private void Write(FileStream fs, byte[] bytes, long pos = -1)
@@ -783,6 +795,11 @@ namespace Rebuilder
                     processes.RemoveAt(i);
                     break;
                 }
+            }
+
+            if (autorun)
+            {
+                Application.Exit();
             }
         }
 
