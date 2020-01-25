@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Windows.Forms;
@@ -628,11 +628,15 @@ namespace Rebuilder
             Directory.CreateDirectory(temp_path);
 
             string dir = "";
-            for (int i=0;i<standard_hdd_dirs.Length;i++)
+            List<string> hdd_dirs = new List<string>();
+            hdd_dirs.Add(Environment.CurrentDirectory.Replace('\\', '/'));
+            hdd_dirs.AddRange(standard_hdd_dirs);
+            List<string>.Enumerator dirEnum = hdd_dirs.GetEnumerator();
+            while (dirEnum.MoveNext())
             {
-                if (IsValidDir(standard_hdd_dirs[i]))
+                if (IsValidDir(dirEnum.Current))
                 {
-                    dir = standard_hdd_dirs[i];
+                    dir = dirEnum.Current;
                     break;
                 }
             }
