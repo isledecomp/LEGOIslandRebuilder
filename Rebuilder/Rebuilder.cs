@@ -31,6 +31,8 @@ namespace Rebuilder
 
         bool aug_build = false;
 
+        bool run_cmd = false;
+
         public static string[] standard_hdd_dirs = {
                 "C:/Program Files (x86)/LEGO Island",
                 "C:/Program Files/LEGO Island",
@@ -639,6 +641,17 @@ namespace Rebuilder
 
             if (string.IsNullOrEmpty(dir))
             {
+                // Try read games path from registry here
+                // We are assuming in this modern era the "CD" path is our game directory
+                dir = (string)Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Mindscape\\LEGO Island", "diskpath", null);
+                if (dir == null)
+                {
+                    dir = (string)Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Mindscape\\LEGO Island", "diskpath", null);
+                }
+            }
+            if (string.IsNullOrEmpty(dir))
+            {
+                // Otherwise we'll prompt the user
                 using (OpenFileDialog ofd = new OpenFileDialog())
                 {
                     ofd.Filter = "ISLE.EXE|ISLE.EXE";
@@ -784,6 +797,11 @@ namespace Rebuilder
                     break;
                 }
             }
+
+            if (run_cmd) 
+            {
+                Application.Exit();
+            }
         }
 
         private void AuthorLinkClick(object sender, LinkLabelLinkClickedEventArgs e)
@@ -850,6 +868,25 @@ namespace Rebuilder
                 }
 
                 stream.Close();
+            }
+
+            // Check for any command line arguments
+            string[] arguments = Environment.GetCommandLineArgs();
+            foreach (string a in arguments)
+            {
+                switch (a)
+                {
+                    case "--help":
+                        MessageBox.Show("Supported arguments:\n\n --help\nDisplays available arguments.\n\n--run\nRuns the game immediately after starting.", "Command Line Argument Help", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    break;
+
+                    case "--run":
+                        Run(null, null);
+                    break;
+
+                    default:
+                    break;
+                }
             }
         }
 
