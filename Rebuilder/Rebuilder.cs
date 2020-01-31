@@ -32,6 +32,7 @@ namespace Rebuilder
         string run_button_kill = "Kill";
 
         public static string auto_music_folder = "";
+        public static bool auto_replace_all = false;
 
         bool aug_build = false;
 
@@ -216,6 +217,17 @@ namespace Rebuilder
             {
                 get { return auto_music_folder; }
                 set { auto_music_folder = value; }
+            }
+
+            [Category("Auto")]
+            [DisplayName("Replace all songs")]
+            [Description("Some of the songs found in the Project Island's high quality music sounds a lot but are not quite the same as some in jukebox.si\n" +
+                "Should the autoreplacer replace those songs to?\n\n" + 
+                "E.G: Act2Cave, cave.wav - sounds a lot like 'Cave Theme.vaw'")]
+            public bool AutoReplaceAll
+            {
+                get { return auto_replace_all; }
+                set { auto_replace_all = value; }
             }
         };
 
@@ -713,7 +725,7 @@ namespace Rebuilder
 
                 List<string> filesFolder = new List<string>(Directory.GetFiles(auto_music_folder));
 
-                List<string> musicFileNames = new List<string>() { "Baroque in Brick.wav", "Brick by Brick new.wav", "Cave Theme.wav", "Chase Theme.wav", "Chasing the Brickster.wav", "Happy Roaming.wav", "Information Center.wav", "Jail Theme.wav", "LEGO Island Theme-01.wav", "Mama Papa Brickolini.wav", "Manta Ray.wav", "Park Theme.wav", "Police Station.wav", "The Brickster - Decal.wav", "The Race.wav", "Think I'm Gonna Build Me a Bridge.wav" };
+                List<string> musicFileNames = new List<string>() { "Baroque in Brick.wav", "Brick by Brick new.wav", "Cave Theme.wav", "Chase Theme.wav", "Chasing the Brickster.wav", "Happy Roaming.wav", "Information Center.wav", "Jail Theme.wav", "LEGO Island Theme-01.wav", "Mama Papa Brickolini.wav", "Manta Ray.wav", "Park Theme.wav", "Police Station.wav", "The Brickster - Decal.wav", "The Race.wav", "Think I'm Gonna Build Me a Bridge.wav", "Fanfare Theme.wav" };
 
                 foreach(string file in filesFolder) {
                     if (!musicFileNames.Contains(file))
@@ -725,116 +737,60 @@ namespace Rebuilder
                     switch (musicName)
                     {
                         case "Baroque in Brick.wav":
-                            music_injector.Rows[51].Cells[1].Value = Path.Combine(auto_music_folder, musicFileNames[0]);
-
-                            MusicInjector.SetCellBold(music_injector.Rows[51].Cells[0]);
-                            MusicInjector.SetCellBold(music_injector.Rows[51].Cells[1]);
+                            MusicChanger(51, "Baroque in Brick.wav");
                             break;
                         case "Brick by Brick new.wav":
-                            music_injector.Rows[48].Cells[1].Value = Path.Combine(auto_music_folder, musicFileNames[1]);
-
-                            MusicInjector.SetCellBold(music_injector.Rows[48].Cells[0]);
-                            MusicInjector.SetCellBold(music_injector.Rows[48].Cells[1]);
+                            MusicChanger(48, "Brick by Brick new.wav");
                             break;
                         case "Cave Theme.wav":
-                            music_injector.Rows[2].Cells[1].Value = Path.Combine(auto_music_folder, musicFileNames[2]);
-
-                            MusicInjector.SetCellBold(music_injector.Rows[2].Cells[0]);
-                            MusicInjector.SetCellBold(music_injector.Rows[2].Cells[1]);
-
-                            music_injector.Rows[8].Cells[1].Value = Path.Combine(auto_music_folder, musicFileNames[2]);
-
-                            MusicInjector.SetCellBold(music_injector.Rows[8].Cells[0]);
-                            MusicInjector.SetCellBold(music_injector.Rows[8].Cells[1]);
+                            if (auto_replace_all)
+                                MusicChanger(2, "Cave Theme.wav");
+                            MusicChanger(8, "Cave Theme.wav");
                             break;
                         case "Chase Theme.wav":
-                            music_injector.Rows[3].Cells[1].Value = Path.Combine(auto_music_folder, musicFileNames[3]);
-
-                            MusicInjector.SetCellBold(music_injector.Rows[3].Cells[0]);
-                            MusicInjector.SetCellBold(music_injector.Rows[3].Cells[1]);
+                            MusicChanger(3, "Chase Theme.wav");
                             break;
                         case "Chasing the Brickster.wav":
-                            music_injector.Rows[5].Cells[1].Value = Path.Combine(auto_music_folder, musicFileNames[4]);
-
-                            MusicInjector.SetCellBold(music_injector.Rows[5].Cells[0]);
-                            MusicInjector.SetCellBold(music_injector.Rows[5].Cells[1]);
+                            MusicChanger(4, "Chasing the Brickster.wav");
                             break;
                         case "Happy Roaming.wav":
-                            music_injector.Rows[9].Cells[1].Value = Path.Combine(auto_music_folder, musicFileNames[5]);
-
-                            MusicInjector.SetCellBold(music_injector.Rows[9].Cells[0]);
-                            MusicInjector.SetCellBold(music_injector.Rows[9].Cells[1]);
+                            MusicChanger(9, "Happy Roaming.wav");
                             break;
                         case "Information Center.wav":
-                            music_injector.Rows[12].Cells[1].Value = Path.Combine(auto_music_folder, musicFileNames[6]);
-
-                            MusicInjector.SetCellBold(music_injector.Rows[12].Cells[0]);
-                            MusicInjector.SetCellBold(music_injector.Rows[12].Cells[1]);
+                            MusicChanger(12, "Information Center.wav");
                             break;
                         case "Jail Theme.wav":
-                            music_injector.Rows[1].Cells[1].Value = Path.Combine(auto_music_folder, musicFileNames[7]);
-
-                            MusicInjector.SetCellBold(music_injector.Rows[1].Cells[0]);
-                            MusicInjector.SetCellBold(music_injector.Rows[1].Cells[1]);
-
-
-                            music_injector.Rows[10].Cells[1].Value = Path.Combine(auto_music_folder, musicFileNames[7]);
-
-                            MusicInjector.SetCellBold(music_injector.Rows[10].Cells[0]);
-                            MusicInjector.SetCellBold(music_injector.Rows[10].Cells[1]);
+                            MusicChanger(1, "Jail Theme.wav");
+                            MusicChanger(10, "Jail Theme.wav");
                             break;
                         case "LEGO Island Theme-01.wav":
-                            music_injector.Rows[7].Cells[1].Value = Path.Combine(auto_music_folder, musicFileNames[8]);
-
-                            MusicInjector.SetCellBold(music_injector.Rows[7].Cells[0]);
-                            MusicInjector.SetCellBold(music_injector.Rows[7].Cells[1]);
+                            MusicChanger(7, "LEGO Island Theme-01.wav");
                             break;
                         case "Mama Papa Brickolini.wav":
-                            music_injector.Rows[0].Cells[1].Value = Path.Combine(auto_music_folder, musicFileNames[9]);
-
-                            MusicInjector.SetCellBold(music_injector.Rows[0].Cells[0]);
-                            MusicInjector.SetCellBold(music_injector.Rows[0].Cells[1]);
-
-                            music_injector.Rows[47].Cells[1].Value = Path.Combine(auto_music_folder, musicFileNames[9]);
-
-                            MusicInjector.SetCellBold(music_injector.Rows[47].Cells[0]);
-                            MusicInjector.SetCellBold(music_injector.Rows[47].Cells[1]);
+                            MusicChanger(0, "Mama Papa Brickolini.wav");
+                            MusicChanger(46, "Mama Papa Brickolini.wav");
+                            MusicChanger(47, "Mama Papa Brickolini.wav");
                             break;
                         case "Manta Ray.wav":
-                            music_injector.Rows[52].Cells[1].Value = Path.Combine(auto_music_folder, musicFileNames[10]);
-
-                            MusicInjector.SetCellBold(music_injector.Rows[52].Cells[0]);
-                            MusicInjector.SetCellBold(music_injector.Rows[52].Cells[1]);
+                            MusicChanger(52, "Manta Ray.wav");
                             break;
                         case "Park Theme.wav":
-                            music_injector.Rows[14].Cells[1].Value = Path.Combine(auto_music_folder, musicFileNames[11]);
-
-                            MusicInjector.SetCellBold(music_injector.Rows[14].Cells[0]);
-                            MusicInjector.SetCellBold(music_injector.Rows[14].Cells[1]);
+                            MusicChanger(14, "Park Theme.wav");
                             break;
                         case "Police Station.wav":
-                            music_injector.Rows[13].Cells[1].Value = Path.Combine(auto_music_folder, musicFileNames[12]);
-
-                            MusicInjector.SetCellBold(music_injector.Rows[13].Cells[0]);
-                            MusicInjector.SetCellBold(music_injector.Rows[13].Cells[1]);
+                            MusicChanger(13, "Police Station.wav");
                             break;
                         case "The Brickster - Decal.wav":
-                            music_injector.Rows[49].Cells[1].Value = Path.Combine(auto_music_folder, musicFileNames[13]);
-
-                            MusicInjector.SetCellBold(music_injector.Rows[49].Cells[0]);
-                            MusicInjector.SetCellBold(music_injector.Rows[49].Cells[1]);
+                            MusicChanger(49, "The Brickster - Decal.wav");;
                             break;
                         case "The Race.wav":
-                            music_injector.Rows[15].Cells[1].Value = Path.Combine(auto_music_folder, musicFileNames[14]);
-
-                            MusicInjector.SetCellBold(music_injector.Rows[15].Cells[0]);
-                            MusicInjector.SetCellBold(music_injector.Rows[15].Cells[1]);
+                            MusicChanger(17, "The Race.wav");
                             break;
                         case "Think I'm Gonna Build Me a Bridge.wav":
-                            music_injector.Rows[50].Cells[1].Value = Path.Combine(auto_music_folder, musicFileNames[15]);
-
-                            MusicInjector.SetCellBold(music_injector.Rows[50].Cells[0]);
-                            MusicInjector.SetCellBold(music_injector.Rows[50].Cells[1]);
+                            MusicChanger(50, "Think I'm Gonna Build Me a Bridge.wav");
+                            break;
+                        case "Fanfare Theme.wav":
+                            MusicChanger(6, "Fanfare Theme.wav");
                             break;
                     }
                 }
@@ -917,6 +873,14 @@ namespace Rebuilder
             {
                 return;
             }
+        }
+
+        private void MusicChanger(int row, string musicFilename)
+        {
+            music_injector.Rows[row].Cells[1].Value = Path.Combine(auto_music_folder, musicFilename);
+
+            MusicInjector.SetCellBold(music_injector.Rows[row].Cells[0]);
+            MusicInjector.SetCellBold(music_injector.Rows[row].Cells[1]);
         }
 
         private void ProcessExit(object sender, EventArgs e)
