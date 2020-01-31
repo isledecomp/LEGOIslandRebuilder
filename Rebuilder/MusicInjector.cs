@@ -15,13 +15,13 @@ namespace Rebuilder
         string jukebox_si_path = "";
         string temp_extract_path = "";
 
-        List<string> filenames = new List<string>();
+        public List<string> filenames = new List<string>();
 
         SoundPlayer sound_player = new SoundPlayer();
         int last_played_row = -1;
 
-        List<string> replace_src = new List<string>();
-        List<string> replace_dst = new List<string>();
+        public List<string> replace_src = new List<string>();
+        public List<string> replace_dst = new List<string>();
 
         public MusicInjector()
         {
@@ -475,7 +475,7 @@ namespace Rebuilder
             cell.Style.Font = new Font(Control.DefaultFont, FontStyle.Regular);
         }
 
-        static void SetCellBold(DataGridViewCell cell)
+        public static void SetCellBold(DataGridViewCell cell)
         {            
             cell.Style.Font = new Font(Control.DefaultFont, FontStyle.Bold);
         }
@@ -526,7 +526,7 @@ namespace Rebuilder
             stream.Write(write_bytes, 0, write_bytes.Length);
         }
 
-        private void ConvertTableToReplaceData()
+        public void ConvertTableToReplaceData()
         {
             replace_src.Clear();
             replace_dst.Clear();
