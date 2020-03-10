@@ -13,22 +13,13 @@ using System.Security.Cryptography;
 
 namespace Rebuilder
 {
-    public class Rebuilder : Form
+    public class Rebuilder
     {
-        Button run_button;
-        Button run_additional_button;
-
         MusicInjector music_injector = new MusicInjector();
-
-        TabControl tabs;
-        PropertyGrid patch_view;
 
         string jukebox_output;
 
         List<Process> processes = new List<Process>();
-
-        string run_button_run = "Run";
-        string run_button_kill = "Kill";
 
         private enum Version
         {
@@ -301,102 +292,137 @@ namespace Rebuilder
             }
         }
 
-        PatchList patch_config;
+        private PatchList patch_config;
 
-        LinkLabel update;
+        public class ConfigForm : Form
+        {
+            private LinkLabel update;
 
-        Rebuilder() {
-            Size = new Size(420, 420);
-            Text = "LEGO Island Rebuilder";
-            Icon = Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            private TabControl tabs;
+            private PropertyGrid patch_view;
 
-            TableLayoutPanel grid = new TableLayoutPanel();
-            grid.Dock = DockStyle.Fill;
+            public Button run_button;
+            public Button run_additional_button;
 
-            // Build standard layout
-            grid.SuspendLayout();
-            
-            Label title = new Label();
-            title.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-            title.Text = "LEGO Island Rebuilder";
-            title.Font = new Font(title.Font, FontStyle.Bold);
-            title.TextAlign = ContentAlignment.MiddleCenter;
-            grid.Controls.Add(title, 0, 0);
+            public const string run_button_run = "Run";
+            public const string run_button_kill = "Kill";
 
-            LinkLabel subtitle = new LinkLabel();
-            subtitle.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-            subtitle.Text = "by MattKC (www.legoisland.org)";
-            subtitle.TextAlign = ContentAlignment.MiddleCenter;
-            subtitle.LinkClicked += new LinkLabelLinkClickedEventHandler(AuthorLinkClick);
-            grid.Controls.Add(subtitle, 0, 1);
+            public TabPage music_page;
 
-            update = new LinkLabel();
-            update.Visible = false;
-            update.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-            update.Text = "An update is available!";
-            update.TextAlign = ContentAlignment.MiddleCenter;
-            update.LinkClicked += new LinkLabelLinkClickedEventHandler(AuthorLinkClick);
-            grid.Controls.Add(update, 0, 2);
+            public ConfigForm(PatchList working_config, MusicInjector music_injector)
+            {
+                Size = new Size(420, 420);
+                Text = "LEGO Island Rebuilder";
+                Icon = Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
 
-            // Set up patch view
-            patch_view = new PropertyGrid();
-            patch_view.Dock = DockStyle.Fill;
+                TableLayoutPanel grid = new TableLayoutPanel();
+                grid.Dock = DockStyle.Fill;
 
-            // Set up tabs
-            tabs = new TabControl();
-            tabs.Dock = DockStyle.Fill;
+                // Build standard layout
+                grid.SuspendLayout();
+                
+                Label title = new Label();
+                title.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+                title.Text = "LEGO Island Rebuilder";
+                title.Font = new Font(title.Font, FontStyle.Bold);
+                title.TextAlign = ContentAlignment.MiddleCenter;
+                grid.Controls.Add(title, 0, 0);
 
-            TabPage patches_page = new TabPage("Patches");
-            patches_page.Controls.Add(patch_view);
-            tabs.Controls.Add(patches_page);
+                LinkLabel subtitle = new LinkLabel();
+                subtitle.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+                subtitle.Text = "by MattKC (www.legoisland.org)";
+                subtitle.TextAlign = ContentAlignment.MiddleCenter;
+                subtitle.LinkClicked += new LinkLabelLinkClickedEventHandler(AuthorLinkClick);
+                grid.Controls.Add(subtitle, 0, 1);
 
-            TabPage music_page = new TabPage("Music");
-            music_page.Controls.Add(music_injector);
-            music_page.Enter += new EventHandler(this.ShowMusicInjectorForm);
-            tabs.Controls.Add(music_page);
+                update = new LinkLabel();
+                update.Visible = false;
+                update.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+                update.Text = "An update is available!";
+                update.TextAlign = ContentAlignment.MiddleCenter;
+                update.LinkClicked += new LinkLabelLinkClickedEventHandler(AuthorLinkClick);
+                grid.Controls.Add(update, 0, 2);
 
-            grid.Controls.Add(tabs, 0, 3);
+                // Set up patch view
+                patch_view = new PropertyGrid();
+                patch_view.Dock = DockStyle.Fill;
+                patch_view.SelectedObject = working_config;
 
-            TableLayoutPanel run_btns = new TableLayoutPanel();
-            run_btns.Dock = DockStyle.Fill;
-            run_btns.Padding = new Padding(0);
-            run_btns.Margin = new Padding(0);
-            run_btns.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 0.5F));
-            run_btns.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 0.5F));
+                // Set up tabs
+                tabs = new TabControl();
+                tabs.Dock = DockStyle.Fill;
 
-            run_button = new Button();
-            run_button.Text = run_button_run;
-            run_button.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-            run_button.Click += new System.EventHandler(this.Run);
-            run_button.Font = new Font(run_button.Font, FontStyle.Bold);
-            run_btns.Controls.Add(run_button, 0, 0);
+                TabPage patches_page = new TabPage("Patches");
+                patches_page.Controls.Add(patch_view);
+                tabs.Controls.Add(patches_page);
 
-            run_additional_button = new Button();
-            run_additional_button.Visible = false;
-            run_additional_button.Text = "Run Additional";
-            run_additional_button.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-            run_additional_button.Click += new System.EventHandler(this.RunAdditional);
-            run_btns.Controls.Add(run_additional_button, 1, 0);
+                music_page = new TabPage("Music");
+                music_page.Controls.Add(music_injector);
+                tabs.Controls.Add(music_page);
 
-            grid.Controls.Add(run_btns, 0, 4);
+                grid.Controls.Add(tabs, 0, 3);
 
-            grid.RowStyles.Clear();
-            grid.RowStyles.Add(new RowStyle(SizeType.Absolute, title.Height));
-            grid.RowStyles.Add(new RowStyle(SizeType.Absolute, subtitle.Height));
-            grid.RowStyles.Add(new RowStyle(SizeType.Absolute, update.Height));
-            grid.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            grid.RowStyles.Add(new RowStyle(SizeType.Absolute, run_button.Height + run_button.Margin.Top + run_button.Margin.Bottom));
+                TableLayoutPanel run_btns = new TableLayoutPanel();
+                run_btns.Dock = DockStyle.Fill;
+                run_btns.Padding = new Padding(0);
+                run_btns.Margin = new Padding(0);
+                run_btns.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 0.5F));
+                run_btns.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 0.5F));
 
-            grid.ResumeLayout(true);
+                run_button = new Button();
+                run_button.Text = run_button_run;
+                run_button.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+                run_button.Font = new Font(run_button.Font, FontStyle.Bold);
+                run_btns.Controls.Add(run_button, 0, 0);
 
-            Controls.Add(grid);
+                run_additional_button = new Button();
+                run_additional_button.Visible = false;
+                run_additional_button.Text = "Run Additional";
+                run_additional_button.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+                run_btns.Controls.Add(run_additional_button, 1, 0);
 
-            ResumeLayout(true);
+                grid.Controls.Add(run_btns, 0, 4);
 
-            CenterToScreen();
+                grid.RowStyles.Clear();
+                grid.RowStyles.Add(new RowStyle(SizeType.Absolute, title.Height));
+                grid.RowStyles.Add(new RowStyle(SizeType.Absolute, subtitle.Height));
+                grid.RowStyles.Add(new RowStyle(SizeType.Absolute, update.Height));
+                grid.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+                grid.RowStyles.Add(new RowStyle(SizeType.Absolute, run_button.Height + run_button.Margin.Top + run_button.Margin.Bottom));
 
-            Shown += new EventHandler(this.OnStartup);
-            FormClosing += new FormClosingEventHandler(this.OnClosing);
+                grid.ResumeLayout(true);
+
+                Controls.Add(grid);
+
+                ResumeLayout(true);
+
+                CenterToScreen();
+            }
+
+            private void AuthorLinkClick(object sender, LinkLabelLinkClickedEventArgs e)
+            {
+                Process.Start("https://www.legoisland.org/");
+            }
+
+            private void UpdateLinkClick(object sender, LinkLabelLinkClickedEventArgs e)
+            {
+                Process.Start("https://www.legoisland.org/rebuilder");
+            }
+        }
+
+        public ConfigForm form;
+
+        Rebuilder(bool enable_ui) {
+            LoadConfig();
+
+            if (enable_ui)
+            {
+                form = new ConfigForm(patch_config, music_injector);
+                form.run_button.Click += new System.EventHandler(this.Run);
+                form.run_additional_button.Click += new System.EventHandler(this.RunAdditional);
+                form.music_page.Enter += new EventHandler(this.ShowMusicInjectorForm);
+                form.FormClosing += new FormClosingEventHandler(this.OnClosing);
+            }
         }
 
         private void Write(FileStream fs, byte[] bytes, long pos = -1)
@@ -473,6 +499,24 @@ namespace Rebuilder
             }
 
             return src;
+        }
+
+        public static string GetRegistryEntry(string key)
+        {
+            using (RegistryKey reg = GetGameRegistryKey())
+            {
+                if (reg != null)
+                {
+                    object o = reg.GetValue(key);
+
+                    if (o != null)
+                    {
+                        return o.ToString();
+                    }
+                }
+            }
+
+            return null;
         }
 
         private static Version DetermineVersion(string lego1dll_url)
@@ -843,7 +887,7 @@ namespace Rebuilder
             processes.Add(p);
         }
 
-        private void Run(object sender, EventArgs e)
+        public void LaunchGame()
         {
             if (processes.Count > 0)
             {
@@ -872,13 +916,7 @@ namespace Rebuilder
             // Check registry for disk path
             if (string.IsNullOrEmpty(dir))
             {
-                using (RegistryKey reg = GetGameRegistryKey())
-                {
-                    if (reg != null)
-                    {
-                        dir = reg.GetValue("diskpath").ToString();
-                    }
-                }
+                dir = GetRegistryEntry("diskpath");
             }
 
             if (string.IsNullOrEmpty(dir))
@@ -1001,10 +1039,10 @@ namespace Rebuilder
                 p.Exited += new EventHandler(ProcessExit);
                 processes.Add(p);
 
-                run_button.Text = run_button_kill;
+                form.run_button.Text = ConfigForm.run_button_kill;
                 if (patch_config.MultipleInstances)
                 {
-                    run_additional_button.Visible = true;
+                    form.run_additional_button.Visible = true;
                 }
             }
             catch
@@ -1013,11 +1051,16 @@ namespace Rebuilder
             }
         }
 
+        private void Run(object sender, EventArgs e)
+        {
+            LaunchGame();
+        }
+
         private void ProcessExit(object sender, EventArgs e)
         {
-            run_button.BeginInvoke((MethodInvoker)delegate () {
-                run_button.Text = run_button_run;
-                run_additional_button.Visible = false;
+            form.run_button.BeginInvoke((MethodInvoker)delegate () {
+                form.run_button.Text = ConfigForm.run_button_run;
+                form.run_additional_button.Visible = false;
             });
 
             for (int i=0;i<processes.Count;i++)
@@ -1028,16 +1071,6 @@ namespace Rebuilder
                     break;
                 }
             }
-        }
-
-        private void AuthorLinkClick(object sender, LinkLabelLinkClickedEventArgs e)
-        {
-            Process.Start("https://www.legoisland.org/");
-        }
-
-        private void UpdateLinkClick(object sender, LinkLabelLinkClickedEventArgs e)
-        {
-            Process.Start("https://www.legoisland.org/rebuilder");
         }
 
         private string GetSettingsDir()
@@ -1059,7 +1092,7 @@ namespace Rebuilder
             return GetSettingsDir() + "/music.xml";
         }
 
-        private void OnStartup(object sender, EventArgs e)
+        private void LoadConfig()
         {
             string settings_path = GetSettingsPath();
 
@@ -1083,8 +1116,6 @@ namespace Rebuilder
             {
                 patch_config = new PatchList();
             }
-
-            patch_view.SelectedObject = patch_config;
 
             settings_path = GetMusicSettingsPath();
 
@@ -1129,7 +1160,45 @@ namespace Rebuilder
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new Rebuilder());
+
+            bool autorun = false;
+            
+            // Parse command line options
+            string[] arguments = Environment.GetCommandLineArgs();
+            foreach (string a in arguments)
+            {
+                string lower_arg = a.ToLower();
+
+                switch (a)
+                {
+                    case "--help":
+                    case "-h":
+                        MessageBox.Show(
+                            "LEGO Island Rebuilder\n\nSupported arguments:\n\n--help, -h\nDisplays this help page.\n\n--run, -r\nRun LEGO Island immediately with the last used configuration.",
+                            "Command Line Argument Help",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Information
+                        );
+                        
+                        Environment.Exit(0);
+                        break;
+                    case "--run":
+                    case "-r":
+                        autorun = true;
+                        break;
+                }
+            }
+
+            Rebuilder instance = new Rebuilder(!autorun);
+
+            if (autorun)
+            {
+                instance.LaunchGame();
+            }
+            else
+            {
+                Application.Run(instance.form);
+            }
         }
     }
 }

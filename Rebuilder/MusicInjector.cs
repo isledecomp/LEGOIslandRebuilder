@@ -10,7 +10,7 @@ using Microsoft.Win32;
 
 namespace Rebuilder
 {
-    class MusicInjector : DataGridView
+    public class MusicInjector : DataGridView
     {
         string jukebox_si_path = "";
         string temp_extract_path = "";
@@ -109,23 +109,19 @@ namespace Rebuilder
             test_dirs.AddRange(Rebuilder.standard_hdd_dirs);
 
             // Check registry for CD path
-            using (RegistryKey reg = Rebuilder.GetGameRegistryKey())
             {
-                if (reg != null)
+                string p = Rebuilder.GetRegistryEntry("diskpath");
+
+                if (!string.IsNullOrEmpty(p))
                 {
-                    string p = reg.GetValue("cdpath").ToString();
+                    test_dirs.Add(p);
+                }
 
-                    if (!string.IsNullOrEmpty(p))
-                    {
-                        test_dirs.Add(p);
-                    }
+                p = Rebuilder.GetRegistryEntry("cdpath");
 
-                    p = reg.GetValue("hdpath").ToString();
-
-                    if (!string.IsNullOrEmpty(p))
-                    {
-                        test_dirs.Add(p);
-                    }
+                if (!string.IsNullOrEmpty(p))
+                {
+                    test_dirs.Add(p);
                 }
             }
 
