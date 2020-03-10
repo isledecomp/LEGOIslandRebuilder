@@ -108,6 +108,27 @@ namespace Rebuilder
 
             test_dirs.AddRange(Rebuilder.standard_hdd_dirs);
 
+            // Check registry for CD path
+            using (RegistryKey reg = Rebuilder.GetGameRegistryKey())
+            {
+                if (reg != null)
+                {
+                    string p = reg.GetValue("cdpath").ToString();
+
+                    if (!string.IsNullOrEmpty(p))
+                    {
+                        test_dirs.Add(p);
+                    }
+
+                    p = reg.GetValue("hdpath").ToString();
+
+                    if (!string.IsNullOrEmpty(p))
+                    {
+                        test_dirs.Add(p);
+                    }
+                }
+            }
+
             // Loop through drive letters
             for (int i=65;i<91;i++)
             {
@@ -115,7 +136,7 @@ namespace Rebuilder
                 test_dirs.Add(drive_letter);
             }
 
-            for (int i=0;i< test_dirs.Count;i++)
+            for (int i=0;i<test_dirs.Count;i++)
             {
                 string test_fn = test_dirs[i] + "/LEGO/Scripts/ISLE/JUKEBOX.SI";
                 if (File.Exists(test_fn))
