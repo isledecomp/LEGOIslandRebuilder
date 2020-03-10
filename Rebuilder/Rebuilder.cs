@@ -9,6 +9,7 @@ using System.ComponentModel;
 using Microsoft.Win32;
 using System.Xml;
 using System.Xml.Serialization;
+using System.Security.Cryptography;
 
 namespace Rebuilder
 {
@@ -29,14 +30,25 @@ namespace Rebuilder
         string run_button_run = "Run";
         string run_button_kill = "Kill";
 
-        bool aug_build = false;
+        private enum Version
+        {
+            kUnknown = -1,
+            kEnglishv10,
+            kEnglishv11
+        }
+
+        // These must correspond to the `Version` enum above
+        private static string[] VersionHashes = {
+            "58FCF0F6500614E9F743712D1DD4D340088123DE",
+            "BBE289E89E5A39949D272174162711EA5CFF522C"
+        };
 
         public static string[] standard_hdd_dirs = {
-                "C:/Program Files (x86)/LEGO Island",
-                "C:/Program Files/LEGO Island",
-                "/Program Files (x86)/LEGO Island",
-                "/Program Files/LEGO Island"
-            };
+            "C:/Program Files (x86)/LEGO Island",
+            "C:/Program Files/LEGO Island",
+            "/Program Files (x86)/LEGO Island",
+            "/Program Files/LEGO Island"
+        };
 
         public enum FPSLimitType
         {
@@ -46,31 +58,116 @@ namespace Rebuilder
         };
 
         public class PatchList {
-            decimal turn_speed = 1.0M;
+            decimal turn_max_speed = 20.0M;
             [Category("Controls")]
-            [DisplayName("Turn Speed")]
-            [Description("Set the turn speed multiplier. LEGO Island ties its turn speed to the frame rate which " +
-                "is too fast on modern PCs. Use this value to correct it. (" +
-                "0.00 = No turning at all, " +
-                "0.35 = Recommended for modern PCs, " +
-                "1.00 = LEGO Island's default)")]
-            public decimal TurnSpeed
+            [DisplayName("Turning: Max Speed")]
+            [Description("Set the maximum turning speed. (Default = 20.0)")]
+            public decimal TurnMaxSpeed
             {
-                get { return turn_speed; }
-                set { turn_speed = value; }
+                get { return turn_max_speed; }
+                set { turn_max_speed = value; }
             }
 
-            decimal move_speed = 1.0M;
+            decimal turn_max_acceleration = 30.0M;
             [Category("Controls")]
-            [DisplayName("Move Speed")]
-            [Description("Set the movement speed multiplier. This value does not affect other racers so it can " +
-                "be used to cheat (or cripple) your chances in races. (" +
-                "0.00 = No movement at all, " +
-                "1.00 = LEGO Island's default)")]
-            public decimal MoveSpeed
+            [DisplayName("Turning: Max Acceleration")]
+            [Description("Set the speed at which turning accelerates (requires 'Turning: Enable Velocity') (Default = 30.0)")]
+            public decimal TurnMaxAcceleration
             {
-                get { return move_speed; }
-                set { move_speed = value; }
+                get { return turn_max_acceleration; }
+                set { turn_max_acceleration = value; }
+            }
+
+            decimal turn_min_acceleration = 15.0M;
+            [Category("Controls")]
+            [DisplayName("Turning: Min Acceleration")]
+            [Description("Set the speed at which turning accelerates (requires 'Turning: Enable Velocity') (Default = 30.0)")]
+            public decimal TurnMinAcceleration
+            {
+                get { return turn_min_acceleration; }
+                set { turn_min_acceleration = value; }
+            }
+
+            decimal turn_deceleration = 50.0M;
+            [Category("Controls")]
+            [DisplayName("Turning: Deceleration")]
+            [Description("Set the speed at which turning decelerates (requires 'Turning: Enable Velocity') (Default = 50.0)")]
+            public decimal TurnDeceleration
+            {
+                get { return turn_deceleration; }
+                set { turn_deceleration = value; }
+            }
+
+            bool turn_use_velocity = false;
+            [Category("Controls")]
+            [DisplayName("Turning: Enable Velocity")]
+            [Description("By default, LEGO Island ignores the turning acceleration/deceleration values. Set this to TRUE to utilize them (Default = FALSE)")]
+            public bool TurnUseVelocity
+            {
+                get { return turn_use_velocity; }
+                set { turn_use_velocity = value; }
+            }
+
+            decimal movement_max_speed = 40.0M;
+            [Category("Controls")]
+            [DisplayName("Movement: Max Speed")]
+            [Description("Set the movement maximum speed. (Default = 40.0)")]
+            public decimal MovementMaxSpeed
+            {
+                get { return movement_max_speed; }
+                set { movement_max_speed = value; }
+            }
+
+            decimal movement_max_acceleration = 15.0M;
+            [Category("Controls")]
+            [DisplayName("Movement: Max Acceleration")]
+            [Description("Set the movement acceleration speed (i.e. how long it takes to go from not moving to top speed) (Default = 15.0)")]
+            public decimal MovementMaxAcceleration
+            {
+                get { return movement_max_acceleration; }
+                set { movement_max_acceleration = value; }
+            }
+
+            decimal movement_min_acceleration = 4.0M;
+            [Category("Controls")]
+            [DisplayName("Movement: Min Acceleration")]
+            [Description("Set the movement acceleration speed (i.e. how long it takes to go from not moving to top speed) (Default = 15.0)")]
+            public decimal MovementMinAcceleration
+            {
+                get { return movement_min_acceleration; }
+                set { movement_min_acceleration = value; }
+            }
+
+            decimal movement_deceleration = 50.0M;
+            [Category("Controls")]
+            [DisplayName("Movement: Deceleration")]
+            [Description("Set the movement deceleration speed (i.e. how long it takes to slow to a stop after releasing the controls). " +
+                "Increase this value to stop faster, decrease it to stop slower. " +
+                "Usually this is set to a very high value making deceleration almost instant. (Default = 50.0)")]
+            public decimal MovementDeceleration
+            {
+                get { return movement_deceleration; }
+                set { movement_deceleration = value; }
+            }
+
+            int mouse_deadzone = 40;
+            [Category("Controls")]
+            [DisplayName("Mouse Deadzone")]
+            [Description("Sets the radius from the center of the screen where the mouse will do nothing (40 = default).")]
+            public int MouseDeadzone
+            {
+                get { return mouse_deadzone; }
+                set { mouse_deadzone = value; }
+            }
+
+            bool unhook_turn_speed = false;
+            [Category("Controls")]
+            [DisplayName("Turning: Unhook From Frame Rate")]
+            [Description("LEGO Island contains a bug where the turning speed is influenced by the frame rate. Enable this to make the turn speed independent of the frame rate.")]
+            public bool UnhookTurnSpeed
+            {
+                get { return unhook_turn_speed; }
+                set { unhook_turn_speed = value; }
             }
 
             bool full_screen = true;
@@ -202,7 +299,7 @@ namespace Rebuilder
                 get { return fov_multiplier; }
                 set { fov_multiplier = value; }
             }
-        };
+        }
 
         PatchList patch_config = new PatchList();
 
@@ -367,41 +464,148 @@ namespace Rebuilder
             return ((DisplayNameAttribute)typeof(PatchList).GetProperty(property).GetCustomAttributes(typeof(DisplayNameAttribute), true)[0]).DisplayName;
         }
 
+        private static Version DetermineVersion(string lego1dll_url)
+        {
+            using (FileStream fs = new FileStream(lego1dll_url, FileMode.Open, FileAccess.Read))
+            using (BufferedStream bs = new BufferedStream(fs))
+            using (SHA1Managed sha1 = new SHA1Managed())
+            {
+                byte[] hash = sha1.ComputeHash(bs);
+                StringBuilder formatted = new StringBuilder(2 * hash.Length);
+                foreach (byte b in hash)
+                {
+                    formatted.AppendFormat("{0:X2}", b);
+                }
+
+                string final_hash = formatted.ToString();
+
+                Version v = (Version) Array.IndexOf(VersionHashes, final_hash);
+
+                if (v == Version.kUnknown) {
+                    if (MessageBox.Show("The version of LEGO Island you have installed is unknown to Rebuilder. This may result in unpredictable behavior. Would you like to continue?\n\n"
+                        + "Your version is: " + final_hash,
+                        "Unknown Version",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Warning) == DialogResult.Yes)
+                    {
+                        return Version.kEnglishv11;
+                    }
+                }
+
+                return v;
+            }
+        }
+
         private bool Patch(string source_dir, string dir)
         {
             string incompatibilities = "";
 
-            using (FileStream lego1dll = File.Open(dir + "/LEGO1.DLL", FileMode.Open, FileAccess.ReadWrite))
-            using (FileStream isleexe = File.Open(dir + "/ISLE.EXE", FileMode.Open, FileAccess.ReadWrite))
-            {
-                // Crude check if the build is September or August                
-                lego1dll.Position = 0x54083;
-                aug_build = (lego1dll.ReadByte() == 0x7E);
-                
-                // Write turn/movement speed hack (this frees up 12 bytes of code)
-                long turn_speed_offset = aug_build ? 0x54083 : 0x54323;              
-                Write(lego1dll, new byte[] { 0x7E, 0x04, 0x2B, 0xD1, 0xEB, 0x0A, 0x89, 0xC8, 0xF7, 0xD8, 0x39, 0xD0, 0x7E, 0x50, 0x01, 0xCA, 0x29, 0xCE, 0x89, 0x54, 0x24, 0x04, 0xDB, 0x44, 0x24, 0x04, 0x89, 0x74, 0x24, 0x04, 0xDA, 0x74, 0x24, 0x04, 0x3D, 0xF0, 0x00, 0x00, 0x00, 0x74, 0x0A, 0xC7, 0x44, 0x24, 0x04 }, turn_speed_offset);                
-                WriteFloat(lego1dll, (float)patch_config.TurnSpeed);
-                Write(lego1dll, new byte[] { 0xEB, 0x08, 0xC7, 0x44, 0x24, 0x04 });
-                WriteFloat(lego1dll, (float)patch_config.MoveSpeed);
-                Write(lego1dll, new byte[] { 0xD8, 0x4C, 0x24, 0x04, 0xD8, 0x4C, 0x24, 0x14, 0xD9, 0x5C, 0x24, 0x04, 0xD9, 0x44, 0x24, 0x04, 0xEB, 0x19 });
-                WriteManyBytes(lego1dll, 0x90, 17);
-                Write(lego1dll, new byte[] { 0x89, 0x7C, 0x24, 0x04, 0xD9, 0x44, 0x24, 0x04, 0x5E, 0x83, 0xC4, 0x04, 0xC2, 0x0C, 0x00 });
+            string isleexe_url = dir + "/ISLE.EXE";
+            string lego1dll_url = dir + "/LEGO1.DLL";
 
+            Version version = DetermineVersion(lego1dll_url);
+
+            if (version == Version.kUnknown)
+            {
+                return false;
+            }
+
+            using (FileStream lego1dll = File.Open(lego1dll_url, FileMode.Open, FileAccess.ReadWrite))
+            using (FileStream isleexe = File.Open(isleexe_url, FileMode.Open, FileAccess.ReadWrite))
+            {
+                long nav_offset, fov_offset_1, fov_offset_2;
+
+                switch (version) {
+                case Version.kEnglishv10:
+                    nav_offset = 0xF2C28;
+                    fov_offset_1 = 0xA1D67;
+                    fov_offset_2 = 0xA1D32;
+                    break;
+                case Version.kEnglishv11:
+                default:
+                    nav_offset = 0xF3228;
+                    fov_offset_1 = 0xA22D7;
+                    fov_offset_2 = 0xA22A2;
+                    break;
+                }
+
+                WriteInt32(lego1dll, (Int32)patch_config.MouseDeadzone, nav_offset);
+
+                // Skip zero threshold
+                lego1dll.Position += 4;
+
+                WriteFloat(lego1dll, (float)patch_config.MovementMaxSpeed);
+
+                WriteFloat(lego1dll, (float)patch_config.TurnMaxSpeed);
+
+                WriteFloat(lego1dll, (float)patch_config.MovementMaxAcceleration);
+
+                WriteFloat(lego1dll, (float)patch_config.TurnMaxAcceleration);
+
+                WriteFloat(lego1dll, (float)patch_config.MovementMinAcceleration);
+
+                WriteFloat(lego1dll, (float)patch_config.TurnMinAcceleration);
+
+                WriteFloat(lego1dll, (float)patch_config.MovementDeceleration);
+
+                WriteFloat(lego1dll, (float)patch_config.TurnDeceleration);
+
+                // Skip 0.4 value that we don't know yet
+                lego1dll.Position += 4;
+
+                WriteInt32(lego1dll, Convert.ToInt32(patch_config.TurnUseVelocity));
 
                 // Patch EXE to read from HKCU instead of HKLM
                 WriteByte(isleexe, 0x01, 0x1B5F);
 
+                if (patch_config.UnhookTurnSpeed)
+                {
+                    // Write turn speed unhook routine
+                    long turn_speed_routine_loc;
+
+                    switch (version) {
+                    case Version.kEnglishv10:
+                        turn_speed_routine_loc = 0x54258;
+                        break;
+                    case Version.kEnglishv11:
+                    default:
+                        turn_speed_routine_loc = 0x544F8;
+                        break;
+                    }
+                    
+                    // Write routine to use frame delta time to adjust the turn speed
+                    Write(lego1dll, new byte[] { 0xD9, 0x46, 0x24, 0xD8, 0x4C, 0x24, 0x14, 0xD8, 0x4E, 0x34 }, turn_speed_routine_loc);
+
+                    // Frees up 26 bytes
+                    WriteManyBytes(lego1dll, 0x90, 26);
+                }
+
                 if (patch_config.StayActiveWhenDefocused)
                 {
+                    long dsoundoffs1, dsoundoffs2, dsoundoffs3;
+
+                    switch (version) {
+                    case Version.kEnglishv10:
+                        dsoundoffs1 = 0xB48FB;
+                        dsoundoffs2 = 0xB48F1;
+                        dsoundoffs3 = 0xAD7D3;
+                        break;
+                    case Version.kEnglishv11:
+                    default:
+                        dsoundoffs1 = 0xB120B;
+                        dsoundoffs2 = 0xB1201;
+                        dsoundoffs3 = 0xADD43;
+                        break;
+                    }
+
                     // Remove code that writes focus value to memory, effectively keeping it always true - frees up 3 bytes
                     Write(isleexe, new byte[] { 0x90, 0x90, 0x90 }, 0x1363);
 
                     // Write DirectSound flags to allow audio to play while the window is defocused
-                    WriteByte(lego1dll, 0x80, aug_build ? 0xB48FB : 0xB120B);
+                    WriteByte(lego1dll, 0x80, dsoundoffs1);
                     WriteByte(lego1dll, 0x80, 0x5B96);
-                    WriteByte(lego1dll, 0x80, aug_build ? 0xB48F1 : 0xB1201);
-                    WriteByte(lego1dll, 0x80, aug_build ? 0xAD7D3 : 0xADD43);
+                    WriteByte(lego1dll, 0x80, dsoundoffs2);
+                    WriteByte(lego1dll, 0x80, dsoundoffs3);
                 }
 
                 if (patch_config.MultipleInstances)
@@ -419,31 +623,38 @@ namespace Rebuilder
                     Uri relative = uri2.MakeRelativeUri(uri1);
                     string jukebox_path = "\\" + Uri.UnescapeDataString(relative.ToString()).Replace("/", "\\");
 
-                    if (aug_build)
-                    {
+                    long jukebox_path_offset;
+
+                    switch (version) {
+                    case Version.kEnglishv10:
+                        jukebox_path_offset = 0xD28F6;
+
                         WriteByte(lego1dll, 0xF6, 0x51EF5);
                         WriteByte(lego1dll, 0x34);
                         WriteByte(lego1dll, 0x0D);
                         WriteByte(lego1dll, 0x10);
-                    }
-                    else
-                    {
+                        break;
+                    case Version.kEnglishv11:
+                    default:
+                        jukebox_path_offset = 0xD2E66;
+
                         WriteByte(lego1dll, 0x66, 0x52195);
                         WriteByte(lego1dll, 0x3A);
                         WriteByte(lego1dll, 0x0D);
                         WriteByte(lego1dll, 0x10);
-                    }                    
+                        break;
+                    }
 
-                    WriteString(lego1dll, jukebox_path, aug_build ? 0xD28F6 : 0xD2E66);
+                    WriteString(lego1dll, jukebox_path, jukebox_path_offset);
                 }
 
                 // FOV Patch
-                WriteByte(lego1dll, 0xEB, aug_build ? 0xA1D67 : 0xA22D7);
+                WriteByte(lego1dll, 0xEB, fov_offset_1);
                 WriteByte(lego1dll, 0xC9);
                 //WriteByte(lego1dll, 0x90);
                 //WriteByte(lego1dll, 0x90);
 
-                WriteByte(lego1dll, 0x68, aug_build ? 0xA1D32 : 0xA22A2);
+                WriteByte(lego1dll, 0x68, fov_offset_2);
                 WriteFloat(lego1dll, (float)patch_config.FOVMultiplier);
                 WriteByte(lego1dll, 0xD8);
                 WriteByte(lego1dll, 0x0C);
@@ -468,8 +679,20 @@ namespace Rebuilder
                 }
                 if (patch_config.FPSLimit != FPSLimitType.Default)
                 {
+                    long remove_fps_limit;
+
+                    switch (version) {
+                    case Version.kEnglishv10:
+                        remove_fps_limit = 0x7A68B;
+                        break;
+                    case Version.kEnglishv11:
+                    default:
+                        remove_fps_limit = 0x7ABAB;
+                        break;
+                    }
+
                     // Disables 30 FPS limit in Information Center when using software mode
-                    WriteManyBytes(lego1dll, 0x90, 8, aug_build ? 0x7A68B : 0x7ABAB);
+                    WriteManyBytes(lego1dll, 0x90, 8, remove_fps_limit);
                 }
 
                 // INCOMPLETE: Resolution hack:
@@ -511,14 +734,15 @@ namespace Rebuilder
                     }
                 }
 
-                if (aug_build && patch_config.RedirectSaveData)
+                if (version == Version.kEnglishv10 && patch_config.RedirectSaveData)
                 {
                     incompatibilities += "- " + GetDisplayNameOfProperty("RedirectSaveData") + "\n";
+                    patch_config.RedirectSaveData = false;
                 }
 
                 if (patch_config.DisableAutoFinishBuilding)
                 {
-                    if (aug_build)
+                    if (version == Version.kEnglishv10)
                     {
                         incompatibilities += "- " + GetDisplayNameOfProperty("DisableAutoFinishBuilding") + "\n";
                     }
@@ -738,7 +962,7 @@ namespace Rebuilder
                         }
                     }
 
-                    if (!patch_config.RedirectSaveData || aug_build)
+                    if (!patch_config.RedirectSaveData)
                     {
                         compat_string += " RUNASADMIN";
                     }
