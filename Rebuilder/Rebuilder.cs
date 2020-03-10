@@ -301,7 +301,7 @@ namespace Rebuilder
             }
         }
 
-        PatchList patch_config = new PatchList();
+        PatchList patch_config;
 
         LinkLabel update;
 
@@ -341,7 +341,6 @@ namespace Rebuilder
             // Set up patch view
             patch_view = new PropertyGrid();
             patch_view.Dock = DockStyle.Fill;
-            patch_view.SelectedObject = patch_config;
 
             // Set up tabs
             tabs = new TabControl();
@@ -462,6 +461,18 @@ namespace Rebuilder
         private static string GetDisplayNameOfProperty(string property)
         {
             return ((DisplayNameAttribute)typeof(PatchList).GetProperty(property).GetCustomAttributes(typeof(DisplayNameAttribute), true)[0]).DisplayName;
+        }
+
+        public static RegistryKey GetGameRegistryKey()
+        {
+            RegistryKey src = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Mindscape\\LEGO Island", false);
+            
+            if (src == null)
+            {
+                src = Registry.LocalMachine.OpenSubKey("SOFTWARE\\WOW6432Node\\Mindscape\\LEGO Island", false);
+            }
+
+            return src;
         }
 
         private static Version DetermineVersion(string lego1dll_url)
@@ -757,42 +768,38 @@ namespace Rebuilder
                 }
             }
 
-            RegistryKey src = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Mindscape\\LEGO Island", false);
-            if (src == null)
+            using (RegistryKey src = GetGameRegistryKey())
             {
-                src = Registry.LocalMachine.OpenSubKey("SOFTWARE\\WOW6432Node\\Mindscape\\LEGO Island", false);
-            }
-
-            if (src == null)
-            {
-                if (MessageBox.Show("Failed to find LEGO Island's registry entries. Some patches may fail. Do you wish to continue?",
-                    "Failed to find registry keys",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Warning) == DialogResult.No)
+                if (src == null)
                 {
-                    return false;
-                }
-            }
-            else
-            {
-                using (RegistryKey dst = Registry.CurrentUser.CreateSubKey("Software\\Mindscape\\LEGO Island"))
-                {
-                    // Copy config data from HKLM to HKCU
-                    CopyRegistryKey(src, dst);
-
-                    // Set full screen value
-                    dst.SetValue("Full Screen", patch_config.FullScreen ? "YES" : "NO");
-
-                    // Redirect save path
-                    if (patch_config.RedirectSaveData)
+                    if (MessageBox.Show("Failed to find LEGO Island's registry entries. Some patches may fail. Do you wish to continue?",
+                        "Failed to find registry keys",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Warning) == DialogResult.No)
                     {
-                        string new_save_dir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\LEGO Island\\";
-                        Directory.CreateDirectory(new_save_dir);
-                        dst.SetValue("savepath", new_save_dir);
+                        return false;
+                    }
+                }
+                else
+                {
+                    using (RegistryKey dst = Registry.CurrentUser.CreateSubKey("Software\\Mindscape\\LEGO Island"))
+                    {
+                        // Copy config data from HKLM to HKCU
+                        CopyRegistryKey(src, dst);
+
+                        // Set full screen value
+                        dst.SetValue("Full Screen", patch_config.FullScreen ? "YES" : "NO");
+
+                        // Redirect save path
+                        if (patch_config.RedirectSaveData)
+                        {
+                            string new_save_dir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\LEGO Island\\";
+                            Directory.CreateDirectory(new_save_dir);
+                            dst.SetValue("savepath", new_save_dir);
+                        }
                     }
                 }
             }
-            
 
             return string.IsNullOrEmpty(incompatibilities) || IncompatibleBuildMessage(incompatibilities);
         }
@@ -851,6 +858,7 @@ namespace Rebuilder
             string temp_path = Path.GetTempPath() + "LEGOIslandRebuilder";
             Directory.CreateDirectory(temp_path);
 
+            // Check our library of "standard paths"
             string dir = "";
             for (int i=0;i<standard_hdd_dirs.Length;i++)
             {
@@ -858,6 +866,18 @@ namespace Rebuilder
                 {
                     dir = standard_hdd_dirs[i];
                     break;
+                }
+            }
+
+            // Check registry for disk path
+            if (string.IsNullOrEmpty(dir))
+            {
+                using (RegistryKey reg = GetGameRegistryKey())
+                {
+                    if (reg != null)
+                    {
+                        dir = reg.GetValue("diskpath").ToString();
+                    }
                 }
             }
 
@@ -1043,6 +1063,8 @@ namespace Rebuilder
         {
             string settings_path = GetSettingsPath();
 
+            bool config_loaded = false;
+
             // Load patch data
             if (File.Exists(settings_path))
             {
@@ -1051,11 +1073,18 @@ namespace Rebuilder
                     XmlSerializer serializer = new XmlSerializer(typeof(PatchList));
                     TextReader reader = new StreamReader(settings_path);
                     patch_config = (PatchList)serializer.Deserialize(reader);
-                    patch_view.SelectedObject = patch_config;
+                    config_loaded = true;
                     reader.Close();
                 }
                 catch (InvalidOperationException) { }
             }
+
+            if (!config_loaded)
+            {
+                patch_config = new PatchList();
+            }
+
+            patch_view.SelectedObject = patch_config;
 
             settings_path = GetMusicSettingsPath();
 
