@@ -49,41 +49,45 @@ namespace Rebuilder
         };
 
         public class PatchList {
-            decimal turn_max_speed = 20.0M;
+            float turn_max_speed = 20.0F;
             [Category("Controls")]
             [DisplayName("Turning: Max Speed")]
             [Description("Set the maximum turning speed. (Default = 20.0)")]
-            public decimal TurnMaxSpeed
+            [DefaultValue(20.0F)]
+            public float TurnMaxSpeed
             {
                 get { return turn_max_speed; }
                 set { turn_max_speed = value; }
             }
 
-            decimal turn_max_acceleration = 30.0M;
+            float turn_max_acceleration = 30.0F;
             [Category("Controls")]
             [DisplayName("Turning: Max Acceleration")]
             [Description("Set the speed at which turning accelerates (requires 'Turning: Enable Velocity') (Default = 30.0)")]
-            public decimal TurnMaxAcceleration
+            [DefaultValue(30.0F)]
+            public float TurnMaxAcceleration
             {
                 get { return turn_max_acceleration; }
                 set { turn_max_acceleration = value; }
             }
 
-            decimal turn_min_acceleration = 15.0M;
+            float turn_min_acceleration = 15.0F;
             [Category("Controls")]
             [DisplayName("Turning: Min Acceleration")]
-            [Description("Set the speed at which turning accelerates (requires 'Turning: Enable Velocity') (Default = 30.0)")]
-            public decimal TurnMinAcceleration
+            [Description("Set the speed at which turning accelerates (requires 'Turning: Enable Velocity') (Default = 15.0)")]
+            [DefaultValue(15.0F)]
+            public float TurnMinAcceleration
             {
                 get { return turn_min_acceleration; }
                 set { turn_min_acceleration = value; }
             }
 
-            decimal turn_deceleration = 50.0M;
+            float turn_deceleration = 50.0F;
             [Category("Controls")]
             [DisplayName("Turning: Deceleration")]
             [Description("Set the speed at which turning decelerates (requires 'Turning: Enable Velocity') (Default = 50.0)")]
-            public decimal TurnDeceleration
+            [DefaultValue(50.0F)]
+            public float TurnDeceleration
             {
                 get { return turn_deceleration; }
                 set { turn_deceleration = value; }
@@ -93,49 +97,54 @@ namespace Rebuilder
             [Category("Controls")]
             [DisplayName("Turning: Enable Velocity")]
             [Description("By default, LEGO Island ignores the turning acceleration/deceleration values. Set this to TRUE to utilize them (Default = FALSE)")]
+            [DefaultValue(false)]
             public bool TurnUseVelocity
             {
                 get { return turn_use_velocity; }
                 set { turn_use_velocity = value; }
             }
 
-            decimal movement_max_speed = 40.0M;
+            float movement_max_speed = 40.0F;
             [Category("Controls")]
             [DisplayName("Movement: Max Speed")]
             [Description("Set the movement maximum speed. (Default = 40.0)")]
-            public decimal MovementMaxSpeed
+            [DefaultValue(40.0F)]
+            public float MovementMaxSpeed
             {
                 get { return movement_max_speed; }
                 set { movement_max_speed = value; }
             }
 
-            decimal movement_max_acceleration = 15.0M;
+            float movement_max_acceleration = 15.0F;
             [Category("Controls")]
             [DisplayName("Movement: Max Acceleration")]
             [Description("Set the movement acceleration speed (i.e. how long it takes to go from not moving to top speed) (Default = 15.0)")]
-            public decimal MovementMaxAcceleration
+            [DefaultValue(15.0F)]
+            public float MovementMaxAcceleration
             {
                 get { return movement_max_acceleration; }
                 set { movement_max_acceleration = value; }
             }
 
-            decimal movement_min_acceleration = 4.0M;
+            float movement_min_acceleration = 4.0F;
             [Category("Controls")]
             [DisplayName("Movement: Min Acceleration")]
-            [Description("Set the movement acceleration speed (i.e. how long it takes to go from not moving to top speed) (Default = 15.0)")]
-            public decimal MovementMinAcceleration
+            [Description("Set the movement acceleration speed (i.e. how long it takes to go from not moving to top speed) (Default = 4.0)")]
+            [DefaultValue(4.0F)]
+            public float MovementMinAcceleration
             {
                 get { return movement_min_acceleration; }
                 set { movement_min_acceleration = value; }
             }
 
-            decimal movement_deceleration = 50.0M;
+            float movement_deceleration = 50.0F;
             [Category("Controls")]
             [DisplayName("Movement: Deceleration")]
             [Description("Set the movement deceleration speed (i.e. how long it takes to slow to a stop after releasing the controls). " +
                 "Increase this value to stop faster, decrease it to stop slower. " +
                 "Usually this is set to a very high value making deceleration almost instant. (Default = 50.0)")]
-            public decimal MovementDeceleration
+            [DefaultValue(50.0F)]
+            public float MovementDeceleration
             {
                 get { return movement_deceleration; }
                 set { movement_deceleration = value; }
@@ -145,6 +154,7 @@ namespace Rebuilder
             [Category("Controls")]
             [DisplayName("Mouse Deadzone")]
             [Description("Sets the radius from the center of the screen where the mouse will do nothing (40 = default).")]
+            [DefaultValue(40)]
             public int MouseDeadzone
             {
                 get { return mouse_deadzone; }
@@ -155,6 +165,7 @@ namespace Rebuilder
             [Category("Controls")]
             [DisplayName("Turning: Unhook From Frame Rate")]
             [Description("LEGO Island contains a bug where the turning speed is influenced by the frame rate. Enable this to make the turn speed independent of the frame rate.")]
+            [DefaultValue(false)]
             public bool UnhookTurnSpeed
             {
                 get { return unhook_turn_speed; }
@@ -165,6 +176,7 @@ namespace Rebuilder
             [Category("Graphics")]
             [DisplayName("Run in Full Screen")]
             [Description("Allows you to change modes without administrator privileges and registry editing.")]
+            [DefaultValue(true)]
             public bool FullScreen
             {
                 get { return full_screen; }
@@ -176,6 +188,7 @@ namespace Rebuilder
             [DisplayName("Allow Multiple Instances")]
             [Description("By default, LEGO Island will allow only one instance of itself to run. " +
                 "This patch allows infinite instances of LEGO Island to run.")]
+            [DefaultValue(false)]
             public bool MultipleInstances
             {
                 get { return multiple_instances; }
@@ -187,6 +200,7 @@ namespace Rebuilder
             [DisplayName("Stay Active When Defocused")]
             [Description("By default, LEGO Island pauses when it's not the active window. " +
                 "This patch prevents that behavior.")]
+            [DefaultValue(false)]
             public bool StayActiveWhenDefocused
             {
                 get { return stay_active_when_defocused; }
@@ -200,6 +214,7 @@ namespace Rebuilder
                 "Windows, this folder is considered privileged access, necessitating running LEGO Island as administrator " +
                 "to save here. This patch sets LEGO Island's save location to %APPDATA% instead, which is an accessible and " +
                 "standard location that most modern games and apps save to.")]
+            [DefaultValue(true)]
             public bool RedirectSaveData
             {
                 get { return redirect_save_data; }
@@ -210,17 +225,19 @@ namespace Rebuilder
             [Category("Graphics")]
             [DisplayName("FPS Cap")]
             [Description("Modify LEGO Island's frame rate cap")]
+            [DefaultValue(FPSLimitType.Default)]
             public FPSLimitType FPSLimit
             {
                 get { return fps_limit_type; }
                 set { fps_limit_type = value; }
             }
 
-            decimal custom_fps_limit = 24.0M;
+            float custom_fps_limit = 24.0F;
             [Category("Graphics")]
             [DisplayName("FPS Cap - Custom Limit")]
             [Description("Is 'FPS Cap' is set to 'Limited', this will be the frame rate used.")]
-            public decimal CustomFPS
+            [DefaultValue(24.0F)]
+            public float CustomFPS
             {
                 get { return custom_fps_limit; }
                 set { custom_fps_limit = value; }
@@ -231,6 +248,7 @@ namespace Rebuilder
             [DisplayName("Override Resolution")]
             [Description("Override LEGO Island's hardcoded 640x480 resolution with a custom resolution. " +
                 "NOTE: This patch is currently incomplete and buggy.")]
+            [DefaultValue(false)]
             public bool OverrideResolution
             {
                 get { return override_resolution; }
@@ -241,6 +259,7 @@ namespace Rebuilder
             [Category("Experimental (Use at your own risk)")]
             [DisplayName("Override Resolution - Width:")]
             [Description("If 'Override Resolution' is enabled, this is the screen resolution width to use instead.")]
+            [DefaultValue(640)]
             public int ResolutionWidth
             {
                 get { return resolution_width; }
@@ -251,6 +270,7 @@ namespace Rebuilder
             [Category("Experimental (Use at your own risk)")]
             [DisplayName("Override Resolution - Height:")]
             [Description("If 'Override Resolution' is enabled, this is the screen resolution height to use instead.")]
+            [DefaultValue(480)]
             public int ResolutionHeight
             {
                 get { return resolution_height; }
@@ -261,6 +281,7 @@ namespace Rebuilder
             [Category("Experimental (Use at your own risk)")]
             [DisplayName("Override Resolution - Bitmap Upscale")]
             [Description("WARNING: This doesn't upscale the bitmaps' hitboxes yet and can make 2D areas like the Information Center difficult to navigate.")]
+            [DefaultValue(false)]
             public bool UpscaleBitmaps
             {
                 get { return upscale_bitmaps; }
@@ -274,18 +295,20 @@ namespace Rebuilder
                 "this prevents players from making any further changes placing the last brick. It also notably defies what Bill Ding says - you " +
                 "don't hit the triangle when you're finished building.\n\nThis patch restores the functionality in v1.0 where placing the last block " +
                 "will not automatically finish the build section.")]
+            [DefaultValue(false)]
             public bool DisableAutoFinishBuilding
             {
                 get { return disable_autofinish_building; }
                 set { disable_autofinish_building = value; }
             }
 
-            decimal fov_multiplier = 0.1M;
+            float fov_multiplier = 0.1F;
             [Category("Graphics")]
             [DisplayName("Field of View Adjustment")]
             [Description("Globally adjusts the field of view by a multiplier\n\n" +
                 "0.1 = Default (smaller than 0.1 is more zoomed in, larger than 0.1 is more zoomed out")]
-            public decimal FOVMultiplier
+            [DefaultValue(0.1F)]
+            public float FOVMultiplier
             {
                 get { return fov_multiplier; }
                 set { fov_multiplier = value; }
@@ -728,7 +751,7 @@ namespace Rebuilder
                 else if (patch_config.FPSLimit == FPSLimitType.Limited)
                 {
                     // Calculate frame delay and write new limit
-                    Int32 delay = (Int32) Math.Round(1000.0M / patch_config.CustomFPS);
+                    Int32 delay = (Int32) Math.Round(1000.0F / patch_config.CustomFPS);
 
                     WriteInt32(isleexe, delay, 0x4B4);
                 }
