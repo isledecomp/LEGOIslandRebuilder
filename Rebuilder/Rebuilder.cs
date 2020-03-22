@@ -25,13 +25,15 @@ namespace Rebuilder
         {
             kUnknown = -1,
             kEnglishv10,
-            kEnglishv11
+            kEnglishv11,
+            kGermanv11
         }
 
         // These must correspond to the `Version` enum above
         private static string[] VersionHashes = {
             "58FCF0F6500614E9F743712D1DD4D340088123DE",
-            "BBE289E89E5A39949D272174162711EA5CFF522C"
+            "BBE289E89E5A39949D272174162711EA5CFF522C",
+            "96A6BAE8345AA04C21F1B319A632CAECFEE22443"
         };
 
         public static string[] standard_hdd_dirs = {
@@ -560,6 +562,8 @@ namespace Rebuilder
                 Version v = (Version) Array.IndexOf(VersionHashes, final_hash);
 
                 if (v == Version.kUnknown) {
+                    Log("Unknown version: " + final_hash);
+
                     if (MessageBox.Show("The version of LEGO Island you have installed is unknown to Rebuilder. This may result in unpredictable behavior. Would you like to continue?\n\n"
                         + "Your version is: " + final_hash,
                         "Unknown Version",
@@ -591,19 +595,42 @@ namespace Rebuilder
             using (FileStream lego1dll = File.Open(lego1dll_url, FileMode.Open, FileAccess.ReadWrite))
             using (FileStream isleexe = File.Open(isleexe_url, FileMode.Open, FileAccess.ReadWrite))
             {
-                long nav_offset, fov_offset_1, fov_offset_2;
+                long nav_offset, fov_offset_1, fov_offset_2, turn_speed_routine_loc, dsoundoffs1, dsoundoffs2, dsoundoffs3, remove_fps_limit, jukebox_path_offset;
 
                 switch (version) {
                 case Version.kEnglishv10:
                     nav_offset = 0xF2C28;
                     fov_offset_1 = 0xA1D67;
                     fov_offset_2 = 0xA1D32;
+                    turn_speed_routine_loc = 0x54258;
+                    dsoundoffs1 = 0xB48FB;
+                    dsoundoffs2 = 0xB48F1;
+                    dsoundoffs3 = 0xAD7D3;
+                    remove_fps_limit = 0x7A68B;
+                    jukebox_path_offset = 0xD28F6;
                     break;
                 case Version.kEnglishv11:
                 default:
                     nav_offset = 0xF3228;
                     fov_offset_1 = 0xA22D7;
                     fov_offset_2 = 0xA22A2;
+                    turn_speed_routine_loc = 0x544F8;
+                    dsoundoffs1 = 0xB120B;
+                    dsoundoffs2 = 0xB1201;
+                    dsoundoffs3 = 0xADD43;
+                    remove_fps_limit = 0x7ABAB;
+                    jukebox_path_offset = 0xD2E66;
+                    break;
+                case Version.kGermanv11:
+                    nav_offset = 0xF3428;
+                    fov_offset_1 = 0xA2517;
+                    fov_offset_2 = 0xA24E2;
+                    turn_speed_routine_loc = 0x544F8;
+                    dsoundoffs1 = 0xB144B;
+                    dsoundoffs2 = 0xB1441;
+                    dsoundoffs3 = 0xADF83;
+                    remove_fps_limit = 0x7AD9B;
+                    jukebox_path_offset = 0xD30A6;
                     break;
                 }
 
@@ -638,19 +665,6 @@ namespace Rebuilder
 
                 if (patch_config.UnhookTurnSpeed)
                 {
-                    // Write turn speed unhook routine
-                    long turn_speed_routine_loc;
-
-                    switch (version) {
-                    case Version.kEnglishv10:
-                        turn_speed_routine_loc = 0x54258;
-                        break;
-                    case Version.kEnglishv11:
-                    default:
-                        turn_speed_routine_loc = 0x544F8;
-                        break;
-                    }
-                    
                     // Write routine to use frame delta time to adjust the turn speed
                     Write(lego1dll, new byte[] { 0xD9, 0x46, 0x24, 0xD8, 0x4C, 0x24, 0x14, 0xD8, 0x4E, 0x34 }, turn_speed_routine_loc);
 
@@ -660,22 +674,6 @@ namespace Rebuilder
 
                 if (patch_config.StayActiveWhenDefocused)
                 {
-                    long dsoundoffs1, dsoundoffs2, dsoundoffs3;
-
-                    switch (version) {
-                    case Version.kEnglishv10:
-                        dsoundoffs1 = 0xB48FB;
-                        dsoundoffs2 = 0xB48F1;
-                        dsoundoffs3 = 0xAD7D3;
-                        break;
-                    case Version.kEnglishv11:
-                    default:
-                        dsoundoffs1 = 0xB120B;
-                        dsoundoffs2 = 0xB1201;
-                        dsoundoffs3 = 0xADD43;
-                        break;
-                    }
-
                     // Remove code that writes focus value to memory, effectively keeping it always true - frees up 3 bytes
                     Write(isleexe, new byte[] { 0x90, 0x90, 0x90 }, 0x1363);
 
@@ -701,12 +699,8 @@ namespace Rebuilder
                     Uri relative = uri2.MakeRelativeUri(uri1);
                     string jukebox_path = "\\" + Uri.UnescapeDataString(relative.ToString()).Replace("/", "\\");
 
-                    long jukebox_path_offset;
-
                     switch (version) {
                     case Version.kEnglishv10:
-                        jukebox_path_offset = 0xD28F6;
-
                         WriteByte(lego1dll, 0xF6, 0x51EF5);
                         WriteByte(lego1dll, 0x34);
                         WriteByte(lego1dll, 0x0D);
@@ -714,8 +708,6 @@ namespace Rebuilder
                         break;
                     case Version.kEnglishv11:
                     default:
-                        jukebox_path_offset = 0xD2E66;
-
                         WriteByte(lego1dll, 0x66, 0x52195);
                         WriteByte(lego1dll, 0x3A);
                         WriteByte(lego1dll, 0x0D);
@@ -757,18 +749,6 @@ namespace Rebuilder
                 }
                 if (patch_config.FPSLimit != FPSLimitType.Default)
                 {
-                    long remove_fps_limit;
-
-                    switch (version) {
-                    case Version.kEnglishv10:
-                        remove_fps_limit = 0x7A68B;
-                        break;
-                    case Version.kEnglishv11:
-                    default:
-                        remove_fps_limit = 0x7ABAB;
-                        break;
-                    }
-
                     // Disables 30 FPS limit in Information Center when using software mode
                     WriteManyBytes(lego1dll, 0x90, 8, remove_fps_limit);
                 }
