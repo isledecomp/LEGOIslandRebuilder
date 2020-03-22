@@ -578,8 +578,8 @@ namespace Rebuilder
         {
             string incompatibilities = "";
 
-            string isleexe_url = dir + "/ISLE.EXE";
-            string lego1dll_url = dir + "/LEGO1.DLL";
+            string isleexe_url = Path.Combine(dir, "ISLE.EXE");
+            string lego1dll_url = Path.Combine(dir, "LEGO1.DLL");
 
             Version version = DetermineVersion(lego1dll_url);
 
@@ -697,7 +697,7 @@ namespace Rebuilder
                 {
                     Uri uri1 = new Uri(jukebox_output.Substring(0, jukebox_output.LastIndexOf(".")));
 
-                    Uri uri2 = new Uri(source_dir + "/ISLE.EXE");
+                    Uri uri2 = new Uri(Path.Combine(source_dir, "ISLE.EXE"));
                     Uri relative = uri2.MakeRelativeUri(uri1);
                     string jukebox_path = "\\" + Uri.UnescapeDataString(relative.ToString()).Replace("/", "\\");
 
@@ -873,7 +873,7 @@ namespace Rebuilder
 
         private bool IsValidDir(string dir)
         {
-            return (File.Exists(dir + "/ISLE.EXE") && File.Exists(dir + "/LEGO1.DLL"));
+            return (File.Exists(Path.Combine(dir, "ISLE.EXE")) && File.Exists(Path.Combine(dir, "LEGO1.DLL")));
         }
 
         private void ShowMusicInjectorForm(object sender, EventArgs e)
@@ -910,8 +910,20 @@ namespace Rebuilder
             processes.Add(p);
         }
 
+        static public void Log(string text)
+        {
+            string log_path = Path.Combine(Path.GetTempPath(), "legoislandrebuilder.log");
+
+            using (StreamWriter log = new StreamWriter(log_path, true))
+            {
+                log.WriteLine("[" + DateTime.Now + "] " + text);
+                log.Close();
+            }
+        }
+
         public void LaunchGame()
         {
+            // If the game is already running, we assume this button is a "Kill" button
             if (processes.Count > 0)
             {
                 foreach (Process p in processes)
@@ -922,10 +934,42 @@ namespace Rebuilder
                 return;
             }
 
-            string temp_path = Path.GetTempPath() + "LEGOIslandRebuilder";
-            Directory.CreateDirectory(temp_path);
+            // Create temp path
+            string temp_path = Path.Combine(Path.GetTempPath(), "LEGOIslandRebuilder");
 
-            // Check our library of "standard paths"
+            Log("Using working directory: " + temp_path);
+
+            if (Directory.Exists(temp_path))
+            {
+                Log("Working directory already exists, no need to create");
+            }
+            else
+            {
+                try
+                {
+                    Directory.CreateDirectory(temp_path);
+
+                    Log("Working directory created successfully");
+                }
+                catch (Exception e)
+                {
+                    Log("Failed to create working directory: " + e.ToString());
+
+                    MessageBox.Show(
+                        "Failed to create temporary path: " + e.ToString(),
+                        "Failed to patch files",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error
+                    );
+
+                    return;
+                }
+            }
+
+            // Search for game directory
+            Log("Searching for game directory...");
+
+            // Check our list of "standard paths"
             string dir = "";
             for (int i=0;i<standard_hdd_dirs.Length;i++)
             {
@@ -936,7 +980,7 @@ namespace Rebuilder
                 }
             }
 
-            // Check registry for disk path
+            // Check registry for disk path ()
             if (string.IsNullOrEmpty(dir))
             {
                 dir = GetRegistryEntry("diskpath");
@@ -971,55 +1015,75 @@ namespace Rebuilder
                         }
                         else
                         {
+                            Log("Failed to find game directory, user cancelled prompt.");
                             return;
                         }
                     }
                 }
             }
 
+            Log("Found game directory: " + dir);
+
             try
             {
                 string[] dest_files = Directory.GetFiles(temp_path);
                 for (int i = 0; i < dest_files.Length; i++)
                 {
+                    Log("Deleting existing file: " + dest_files[i]);
                     File.Delete(dest_files[i]);
-                }                    
+                }
+            }
+            catch (Exception e)
+            {
+                Log("Failed to delete old files: " + e.ToString());
+                MessageBox.Show("Failed to delete old files: " + e.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
 
+            try
+            {
                 string[] src_files = Directory.GetFiles(dir);
                 for (int i=0;i< src_files.Length;i++)
                 {
-                    File.Copy(src_files[i], temp_path + "/" + Path.GetFileName(src_files[i]), true);
+                    Log("Copying game file: " + Path.GetFileName(src_files[i]));
+                    File.Copy(src_files[i], Path.Combine(temp_path, Path.GetFileName(src_files[i])), true);
                 }
             }
-            catch
+            catch (Exception e)
             {
-                MessageBox.Show("Failed to patch files", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Log("Failed to copy files for patching: " + e.ToString());
+                MessageBox.Show("Failed to copy files for patching: " + e.ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
             // Perform music insertion if necessary
             if (music_injector.ReplaceCount() > 0)
             {
-                jukebox_output = dir + "/LEGO/Scripts/REJUKEBOX.SI";
+                jukebox_output = Path.Combine(dir, "LEGO/Scripts/REJUKEBOX.SI");
+
+                Log("Attempting to create injected jukebox file: " + jukebox_output);
 
                 try
                 {
                     using (FileStream test_fs = new FileStream(jukebox_output, FileMode.Create, FileAccess.Write))
                     {
-
+                        test_fs.Close();
                     }
                 }
                 catch
                 {
-                    jukebox_output = Path.GetTempPath() + "REJUKEBOX.SI";
+                    jukebox_output = Path.Combine(Path.GetTempPath(), "REJUKEBOX.SI");
+                    Log("Unable to use previous jukebox path, using alternative: " + jukebox_output);
                 }
 
                 music_injector.Insert(jukebox_output);
             }
 
+            Log("Patching files");
             if (!Patch(dir, temp_path)) return;
 
             // Set new EXE's compatibility mode to 256-colors
+            Log("Creating compatibility registry keys");
             using (RegistryKey key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers", true))
             {
                 if (key != null)
@@ -1052,7 +1116,8 @@ namespace Rebuilder
                 }
             }
 
-            ProcessStartInfo start_info = new ProcessStartInfo(temp_path + "/ISLE.EXE");
+            Log("Launching game...");
+            ProcessStartInfo start_info = new ProcessStartInfo(Path.Combine(temp_path, "ISLE.EXE"));
             start_info.WorkingDirectory = dir;
 
             try
@@ -1067,9 +1132,18 @@ namespace Rebuilder
                 {
                     form.run_additional_button.Visible = true;
                 }
+
+                Log("Game launched successfully");
             }
-            catch
+            catch (Exception e)
             {
+                Log("Failed to launch LEGO Island: " + e.ToString());
+                MessageBox.Show(
+                    "Failed to launch LEGO Island: " + e.ToString(),
+                    "Failed to launch",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
                 return;
             }
         }
@@ -1098,7 +1172,7 @@ namespace Rebuilder
 
         private string GetSettingsDir()
         {
-            string settings_path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "/LEGOIslandRebuilder";
+            string settings_path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LEGOIslandRebuilder");
 
             Directory.CreateDirectory(settings_path);
 
@@ -1107,12 +1181,12 @@ namespace Rebuilder
 
         private string GetSettingsPath()
         {
-            return GetSettingsDir() + "/settings.xml";
+            return Path.Combine(GetSettingsDir(), "settings.xml");
         }
 
         private string GetMusicSettingsPath()
         {
-            return GetSettingsDir() + "/music.xml";
+            return Path.Combine(GetSettingsDir(), "music.xml");
         }
 
         private void LoadConfig()
