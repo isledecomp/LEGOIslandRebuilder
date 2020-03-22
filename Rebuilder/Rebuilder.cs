@@ -24,16 +24,18 @@ namespace Rebuilder
         private enum Version
         {
             kUnknown = -1,
-            kEnglishv10,
-            kEnglishv11,
-            kGermanv11
+            kEnglish10,
+            kEnglish11,
+            kGerman11,
+            kDanish11
         }
 
         // These must correspond to the `Version` enum above
         private static string[] VersionHashes = {
             "58FCF0F6500614E9F743712D1DD4D340088123DE",
             "BBE289E89E5A39949D272174162711EA5CFF522C",
-            "96A6BAE8345AA04C21F1B319A632CAECFEE22443"
+            "96A6BAE8345AA04C21F1B319A632CAECFEE22443",
+            "8DFD3E5FDDE8C95C61013069795171163C9A4821"
         };
 
         public static string[] standard_hdd_dirs = {
@@ -570,7 +572,7 @@ namespace Rebuilder
                         MessageBoxButtons.YesNo,
                         MessageBoxIcon.Warning) == DialogResult.Yes)
                     {
-                        return Version.kEnglishv11;
+                        return Version.kEnglish11;
                     }
                 }
 
@@ -587,6 +589,8 @@ namespace Rebuilder
 
             Version version = DetermineVersion(lego1dll_url);
 
+            Log("Found version: " + version);
+
             if (version == Version.kUnknown)
             {
                 return false;
@@ -598,7 +602,7 @@ namespace Rebuilder
                 long nav_offset, fov_offset_1, fov_offset_2, turn_speed_routine_loc, dsoundoffs1, dsoundoffs2, dsoundoffs3, remove_fps_limit, jukebox_path_offset;
 
                 switch (version) {
-                case Version.kEnglishv10:
+                case Version.kEnglish10:
                     nav_offset = 0xF2C28;
                     fov_offset_1 = 0xA1D67;
                     fov_offset_2 = 0xA1D32;
@@ -609,7 +613,7 @@ namespace Rebuilder
                     remove_fps_limit = 0x7A68B;
                     jukebox_path_offset = 0xD28F6;
                     break;
-                case Version.kEnglishv11:
+                case Version.kEnglish11:
                 default:
                     nav_offset = 0xF3228;
                     fov_offset_1 = 0xA22D7;
@@ -621,7 +625,7 @@ namespace Rebuilder
                     remove_fps_limit = 0x7ABAB;
                     jukebox_path_offset = 0xD2E66;
                     break;
-                case Version.kGermanv11:
+                case Version.kGerman11:
                     nav_offset = 0xF3428;
                     fov_offset_1 = 0xA2517;
                     fov_offset_2 = 0xA24E2;
@@ -631,6 +635,17 @@ namespace Rebuilder
                     dsoundoffs3 = 0xADF83;
                     remove_fps_limit = 0x7AD9B;
                     jukebox_path_offset = 0xD30A6;
+                    break;
+                case Version.kDanish11:
+                    nav_offset = 0xF3428;
+                    fov_offset_1 = 0xA24C7;
+                    fov_offset_2 = 0xA2492;
+                    turn_speed_routine_loc = 0x544F8;
+                    dsoundoffs1 = 0xB13FB;
+                    dsoundoffs2 = 0xB13F1;
+                    dsoundoffs3 = 0xADF33;
+                    remove_fps_limit = 0x7AD5B;
+                    jukebox_path_offset = 0xD3056;
                     break;
                 }
 
@@ -700,13 +715,13 @@ namespace Rebuilder
                     string jukebox_path = "\\" + Uri.UnescapeDataString(relative.ToString()).Replace("/", "\\");
 
                     switch (version) {
-                    case Version.kEnglishv10:
+                    case Version.kEnglish10:
                         WriteByte(lego1dll, 0xF6, 0x51EF5);
                         WriteByte(lego1dll, 0x34);
                         WriteByte(lego1dll, 0x0D);
                         WriteByte(lego1dll, 0x10);
                         break;
-                    case Version.kEnglishv11:
+                    case Version.kEnglish11:
                     default:
                         WriteByte(lego1dll, 0x66, 0x52195);
                         WriteByte(lego1dll, 0x3A);
@@ -792,7 +807,7 @@ namespace Rebuilder
                     }
                 }
 
-                if (version == Version.kEnglishv10 && patch_config.RedirectSaveData)
+                if (version == Version.kEnglish10 && patch_config.RedirectSaveData)
                 {
                     incompatibilities += "- " + GetDisplayNameOfProperty("RedirectSaveData") + "\n";
                     patch_config.RedirectSaveData = false;
@@ -800,7 +815,7 @@ namespace Rebuilder
 
                 if (patch_config.DisableAutoFinishBuilding)
                 {
-                    if (version == Version.kEnglishv10)
+                    if (version == Version.kEnglish10)
                     {
                         incompatibilities += "- " + GetDisplayNameOfProperty("DisableAutoFinishBuilding") + "\n";
                     }
