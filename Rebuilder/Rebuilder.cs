@@ -1025,6 +1025,7 @@ namespace Rebuilder
                 for (int i = 0; i < dest_files.Length; i++)
                 {
                     Log("Deleting existing file: " + dest_files[i]);
+                    File.SetAttributes(dest_files[i], FileAttributes.Normal);
                     File.Delete(dest_files[i]);
                 }
             }
