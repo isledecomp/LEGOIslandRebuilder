@@ -27,7 +27,8 @@ namespace Rebuilder
             kEnglish10,
             kEnglish11,
             kGerman11,
-            kDanish11
+            kDanish11,
+            kSpanish11
         }
 
         // These must correspond to the `Version` enum above
@@ -35,7 +36,8 @@ namespace Rebuilder
             "58FCF0F6500614E9F743712D1DD4D340088123DE",
             "BBE289E89E5A39949D272174162711EA5CFF522C",
             "96A6BAE8345AA04C21F1B319A632CAECFEE22443",
-            "8DFD3E5FDDE8C95C61013069795171163C9A4821"
+            "8DFD3E5FDDE8C95C61013069795171163C9A4821",
+            "47EE50FC1EC5F6C54F465EB296D2F1B7CA25D5D2"
         };
 
         public static string[] standard_hdd_dirs = {
@@ -646,6 +648,17 @@ namespace Rebuilder
                     dsoundoffs3 = 0xADF33;
                     remove_fps_limit = 0x7AD5B;
                     jukebox_path_offset = 0xD3056;
+                    break;
+                case Version.kSpanish11:
+                    nav_offset = 0xF3228;
+                    fov_offset_1 = 0xA2407;
+                    fov_offset_2 = 0xA23D2;
+                    turn_speed_routine_loc = 0x544F8;
+                    dsoundoffs1 = 0xB133B;
+                    dsoundoffs2 = 0xB1331;
+                    dsoundoffs3 = 0xADE73;
+                    remove_fps_limit = 0x7ACBB;
+                    jukebox_path_offset = 0xD2F96;
                     break;
                 }
 
