@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Windows.Forms;
@@ -178,6 +178,17 @@ namespace Rebuilder
                 set { unhook_turn_speed = value; }
             }
 
+            bool use_joystick = false;
+            [Category("Controls")]
+            [DisplayName("Use Joystick")]
+            [Description("Enables Joystick functionality.")]
+            [DefaultValue(false)]
+            public bool UseJoystick
+            {
+                get { return use_joystick; }
+                set { use_joystick = value; }
+            }
+
             bool full_screen = true;
             [Category("Graphics")]
             [DisplayName("Run in Full Screen")]
@@ -187,6 +198,17 @@ namespace Rebuilder
             {
                 get { return full_screen; }
                 set { full_screen = value; }
+            }
+
+            bool draw_cursor = false;
+            [Category("Graphics")]
+            [DisplayName("Draw Cursor")]
+            [Description("Renders an in-game cursor, rather than a standard Windows pointer.")]
+            [DefaultValue(false)]
+            public bool DrawCursor
+            {
+                get { return draw_cursor; }
+                set { draw_cursor = value; }
             }
 
             bool multiple_instances = false;
@@ -298,7 +320,7 @@ namespace Rebuilder
             [Category("Gameplay")]
             [DisplayName("Disable Auto-Finish Building Section")]
             [Description("In LEGO Island v1.1, placing the last block when building will automatically end the building section. While convenient, " +
-                "this prevents players from making any further changes placing the last brick. It also notably defies what Bill Ding says - you " +
+                "this prevents players from making any further changes after placing the last brick. It also notably defies what Bill Ding says - you " +
                 "don't hit the triangle when you're finished building.\n\nThis patch restores the functionality in v1.0 where placing the last block " +
                 "will not automatically finish the build section.")]
             [DefaultValue(false)]
@@ -306,6 +328,17 @@ namespace Rebuilder
             {
                 get { return disable_autofinish_building; }
                 set { disable_autofinish_building = value; }
+            }
+
+            bool music_toggle = true;
+            [Category("Gameplay")]
+            [DisplayName("Play Music")]
+            [Description("Turns in-game music on or off.")]
+            [DefaultValue(true)]
+            public bool MusicToggle
+            {
+                get { return music_toggle; }
+                set { music_toggle = value; }
             }
 
             float fov_multiplier = 0.1F;
@@ -864,6 +897,15 @@ namespace Rebuilder
 
                         // Set full screen value
                         dst.SetValue("Full Screen", patch_config.FullScreen ? "YES" : "NO");
+
+                        // Set draw cursor value
+                        dst.SetValue("Draw Cursor", patch_config.DrawCursor ? "YES" : "NO");
+
+                        // Set Joystick toggle
+                        dst.SetValue("UseJoystick", patch_config.UseJoystick ? "YES" : "NO");
+
+                        // Toggle music on or off
+                        dst.SetValue("Music", patch_config.MusicToggle ? "YES" : "NO");
 
                         // Redirect save path
                         if (patch_config.RedirectSaveData)
