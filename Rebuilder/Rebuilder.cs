@@ -741,6 +741,24 @@ namespace Rebuilder
                         WriteByte(lego1dll, 0x0D);
                         WriteByte(lego1dll, 0x10);
                         break;
+                    case Version.kGerman11:
+                        WriteByte(lego1dll, 0xA6, 0x52195);
+                        WriteByte(lego1dll, 0x3C);
+                        WriteByte(lego1dll, 0x0D);
+                        WriteByte(lego1dll, 0x10);
+                        break;
+                    case Version.kDanish11:
+                        WriteByte(lego1dll, 0x56, 0x52195);
+                        WriteByte(lego1dll, 0x3C);
+                        WriteByte(lego1dll, 0x0D);
+                        WriteByte(lego1dll, 0x10);
+                        break;
+                    case Version.kSpanish11:
+                        WriteByte(lego1dll, 0x96, 0x52195);
+                        WriteByte(lego1dll, 0x3B);
+                        WriteByte(lego1dll, 0x0D);
+                        WriteByte(lego1dll, 0x10);
+                        break;
                     }
 
                     WriteString(lego1dll, jukebox_path, jukebox_path_offset);
@@ -1097,8 +1115,6 @@ namespace Rebuilder
             {
                 if (key != null)
                 {
-                    key.CreateSubKey(temp_path + "\\ISLE.EXE");
-
                     //string compat_string = "HIGHDPIAWARE";
                     string compat_string = "HIGHDPIAWARE DWM8And16BitMitigation";
                     
