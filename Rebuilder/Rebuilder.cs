@@ -54,6 +54,13 @@ namespace Rebuilder
             Limited
         };
 
+        public enum ModelQualityType
+        {
+            High,
+            Medium,
+            Low
+        }
+
         public class PatchList {
             float turn_max_speed = 20.0F;
             [Category("Controls")]
@@ -258,6 +265,17 @@ namespace Rebuilder
             {
                 get { return fps_limit_type; }
                 set { fps_limit_type = value; }
+            }
+
+            ModelQualityType model_quality = ModelQualityType.Medium;
+            [Category("Graphics")]
+            [DisplayName("Model Quality")]
+            [Description("Change LEGO Island's default model quality")]
+            [DefaultValue(ModelQualityType.Medium)]
+            public ModelQualityType ModelQuality
+            {
+                get { return model_quality; }
+                set { model_quality = value; }
             }
 
             float custom_fps_limit = 24.0F;
@@ -634,7 +652,8 @@ namespace Rebuilder
             using (FileStream lego1dll = File.Open(lego1dll_url, FileMode.Open, FileAccess.ReadWrite))
             using (FileStream isleexe = File.Open(isleexe_url, FileMode.Open, FileAccess.ReadWrite))
             {
-                long nav_offset, fov_offset_1, fov_offset_2, turn_speed_routine_loc, dsoundoffs1, dsoundoffs2, dsoundoffs3, remove_fps_limit, jukebox_path_offset;
+                long nav_offset, fov_offset_1, fov_offset_2, turn_speed_routine_loc, dsoundoffs1, 
+                     dsoundoffs2, dsoundoffs3, remove_fps_limit, jukebox_path_offset, model_quality_offset;
 
                 switch (version) {
                 case Version.kEnglish10:
@@ -647,6 +666,7 @@ namespace Rebuilder
                     dsoundoffs3 = 0xAD7D3;
                     remove_fps_limit = 0x7A68B;
                     jukebox_path_offset = 0xD28F6;
+                    model_quality_offset = 0xFF028;
                     break;
                 case Version.kEnglish11:
                 default:
@@ -659,6 +679,7 @@ namespace Rebuilder
                     dsoundoffs3 = 0xADD43;
                     remove_fps_limit = 0x7ABAB;
                     jukebox_path_offset = 0xD2E66;
+                    model_quality_offset = 0xFF648;
                     break;
                 case Version.kGerman11:
                     nav_offset = 0xF3428;
@@ -670,6 +691,7 @@ namespace Rebuilder
                     dsoundoffs3 = 0xADF83;
                     remove_fps_limit = 0x7AD9B;
                     jukebox_path_offset = 0xD30A6;
+                    model_quality_offset = 0xFF878;
                     break;
                 case Version.kDanish11:
                     nav_offset = 0xF3428;
@@ -681,6 +703,7 @@ namespace Rebuilder
                     dsoundoffs3 = 0xADF33;
                     remove_fps_limit = 0x7AD5B;
                     jukebox_path_offset = 0xD3056;
+                    model_quality_offset = 0xFF868;
                     break;
                 case Version.kSpanish11:
                     nav_offset = 0xF3228;
@@ -692,6 +715,7 @@ namespace Rebuilder
                     dsoundoffs3 = 0xADE73;
                     remove_fps_limit = 0x7ACBB;
                     jukebox_path_offset = 0xD2F96;
+                    model_quality_offset = 0xFF658;
                     break;
                 }
 
@@ -830,6 +854,18 @@ namespace Rebuilder
                 {
                     // Disables 30 FPS limit in Information Center when using software mode
                     WriteManyBytes(lego1dll, 0x90, 8, remove_fps_limit);
+                }
+
+                switch (patch_config.ModelQuality) {
+                case ModelQualityType.Low:
+                    WriteFloat(lego1dll, 0.0f, model_quality_offset);
+                    break;
+                case ModelQualityType.Medium:
+                    WriteFloat(lego1dll, 3.6f, model_quality_offset);
+                    break;
+                case ModelQualityType.High:
+                    WriteFloat(lego1dll, 5.0f, model_quality_offset);
+                    break;
                 }
 
                 // INCOMPLETE: Resolution hack:
@@ -1157,8 +1193,7 @@ namespace Rebuilder
             {
                 if (key != null)
                 {
-                    //string compat_string = "HIGHDPIAWARE";
-                    string compat_string = "HIGHDPIAWARE DWM8And16BitMitigation";
+                    string compat_string = "DWM8And16BitMitigation";
                     
                     if (!patch_config.FullScreen)
                     {
