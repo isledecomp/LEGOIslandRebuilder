@@ -37,14 +37,44 @@ namespace Rebuilder
             "BBE289E89E5A39949D272174162711EA5CFF522C",
             "96A6BAE8345AA04C21F1B319A632CAECFEE22443",
             "8DFD3E5FDDE8C95C61013069795171163C9A4821",
-            "47EE50FC1EC5F6C54F465EB296D2F1B7CA25D5D2"
+            "47EE50FC1EC5F6C54F465EB296D2F1B7CA25D5D2",
         };
 
-        public static string[] standard_hdd_dirs = {
+        public static string[] standard_hdd_dirs = { //TODO: Find these installation directory strings programmatically 
             "C:/Program Files (x86)/LEGO Island",
             "C:/Program Files/LEGO Island",
             "/Program Files (x86)/LEGO Island",
-            "/Program Files/LEGO Island"
+            "/Program Files/LEGO Island",
+            "C:/Program Files (x86)/LEGO Insel",
+            "C:/Program Files/LEGO Insel",
+            "/Program Files (x86)/LEGO Insel",
+            "/Program Files/LEGO Insel",
+            "C:/Program Files (x86)/LEGO Øen",
+            "C:/Program Files/LEGO Øen",
+            "/Program Files (x86)/LEGO Øen",
+            "/Program Files/LEGO Øen",
+            "C:/Program Files (x86)/レゴアイランド",
+            "C:/Program Files/レゴアイランド",
+            "/Program Files (x86)/レゴアイランド",
+            "/Program Files/レゴアイランド",
+            "C:/Program Files (x86)/LEGO Isola",
+            "C:/Program Files/LEGO Isola",
+            "/Program Files (x86)/LEGO Isola",
+            "/Program Files/LEGO Isola",
+            "C:/Program Files (x86)/A Ilha Lego",
+            "C:/Program Files/A Ilha Lego",
+            "/Program Files (x86)/A Ilha Lego",
+            "/Program Files/A Ilha Lego",
+            "C:/Program Files (x86)/Aventures sur l'Ile LEGO",
+            "C:/Program Files/Aventures sur l'Ile LEGO",
+            "/Program Files (x86)/Aventures sur l'Ile LEGO",
+            "/Program Files/Aventures sur l'Ile LEGO",
+            "C:/Program Files (x86)/La Isla LEGO",
+            "C:/Program Files/La Isla LEGO",
+            "/Program Files (x86)/La Isla LEGO",
+            "/Program Files/La Isla LEGO"
+
+
         };
 
         public enum FPSLimitType
