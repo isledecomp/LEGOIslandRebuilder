@@ -37,7 +37,7 @@ namespace Rebuilder
             "BBE289E89E5A39949D272174162711EA5CFF522C",
             "96A6BAE8345AA04C21F1B319A632CAECFEE22443",
             "8DFD3E5FDDE8C95C61013069795171163C9A4821",
-            "47EE50FC1EC5F6C54F465EB296D2F1B7CA25D5D2",
+            "47EE50FC1EC5F6C54F465EB296D2F1B7CA25D5D2"
         };
 
         public static string[] standard_hdd_dirs = { //TODO: Find these installation directory strings programmatically 
@@ -73,8 +73,6 @@ namespace Rebuilder
             "C:/Program Files/La Isla LEGO",
             "/Program Files (x86)/La Isla LEGO",
             "/Program Files/La Isla LEGO"
-
-
         };
 
         public enum FPSLimitType
