@@ -40,40 +40,7 @@ namespace Rebuilder
             "47EE50FC1EC5F6C54F465EB296D2F1B7CA25D5D2"
         };
 
-        public static string[] standard_hdd_dirs = { //TODO: Find these installation directory strings programmatically 
-            "C:/Program Files (x86)/LEGO Island",
-            "C:/Program Files/LEGO Island",
-            "/Program Files (x86)/LEGO Island",
-            "/Program Files/LEGO Island",
-            "C:/Program Files (x86)/LEGO Insel",
-            "C:/Program Files/LEGO Insel",
-            "/Program Files (x86)/LEGO Insel",
-            "/Program Files/LEGO Insel",
-            "C:/Program Files (x86)/LEGO Øen",
-            "C:/Program Files/LEGO Øen",
-            "/Program Files (x86)/LEGO Øen",
-            "/Program Files/LEGO Øen",
-            "C:/Program Files (x86)/レゴアイランド",
-            "C:/Program Files/レゴアイランド",
-            "/Program Files (x86)/レゴアイランド",
-            "/Program Files/レゴアイランド",
-            "C:/Program Files (x86)/LEGO Isola",
-            "C:/Program Files/LEGO Isola",
-            "/Program Files (x86)/LEGO Isola",
-            "/Program Files/LEGO Isola",
-            "C:/Program Files (x86)/A Ilha Lego",
-            "C:/Program Files/A Ilha Lego",
-            "/Program Files (x86)/A Ilha Lego",
-            "/Program Files/A Ilha Lego",
-            "C:/Program Files (x86)/Aventures sur l'Ile LEGO",
-            "C:/Program Files/Aventures sur l'Ile LEGO",
-            "/Program Files (x86)/Aventures sur l'Ile LEGO",
-            "/Program Files/Aventures sur l'Ile LEGO",
-            "C:/Program Files (x86)/La Isla LEGO",
-            "C:/Program Files/La Isla LEGO",
-            "/Program Files (x86)/La Isla LEGO",
-            "/Program Files/La Isla LEGO"
-        };
+        public static string[] standard_hdd_dirs = GetStandardInstallationDirs();
 
         public enum FPSLimitType
         {
@@ -1298,6 +1265,39 @@ namespace Rebuilder
                     break;
                 }
             }
+        }
+
+        private static string[] GetStandardInstallationDirs()
+        {
+            string[] gameTitles =
+            {
+                "LEGO Island",                  // English
+                "LEGO Insel",                   // German
+                "LEGO Øen",                     // Danish
+                "レゴアイランド",                // Japanese
+                "LEGO Isola",                   // Italian
+                "A Ilha Lego",                  // Portuguese
+                "Aventures sur l'Ile LEGO",     // French
+                "La Isla LEGO"                  // Spanish
+            };
+
+            string[] pathPrefixes =
+            {
+                Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%"),
+                Environment.ExpandEnvironmentVariables("%ProgramW6432%")
+            };
+
+            var result = new string[pathPrefixes.Length * gameTitles.Length];
+
+            for (int i = 0; i < gameTitles.Length; i++)
+            {
+                for (int j = 0; j < pathPrefixes.Length; j++)
+                {
+                    result[i * pathPrefixes.Length + j] = Path.Combine(pathPrefixes[j], gameTitles[i]);
+                }
+            }
+
+            return result;
         }
 
         private string GetSettingsDir()
