@@ -106,8 +106,6 @@ namespace Rebuilder
             // Test standard directories
             List<string> test_dirs = new List<string>();
 
-            test_dirs.AddRange(Rebuilder.standard_hdd_dirs);
-
             // Check registry for CD path
             {
                 string p = Rebuilder.GetRegistryEntry("diskpath");
