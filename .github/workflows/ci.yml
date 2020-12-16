@@ -44,5 +44,5 @@ jobs:
       shell: bash
       if: github.event_name == 'push'
       run: |
-        wget -c https://github.com/probonopd/uploadtool/raw/master/upload.sh
+        curl -fLOSs --retry 2 --retry-delay 60 https://github.com/probonopd/uploadtool/raw/master/upload.sh
         ./upload.sh Rebuilder/obj/Release/Rebuilder.exe
