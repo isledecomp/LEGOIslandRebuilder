@@ -33,3 +33,9 @@ jobs:
     
     - name: Build
       run: msbuild Rebuilder.sln /p:Configuration=Release
+    
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v2.2.1
+      with:
+        path: 
+          Rebuilder/obj/Release/Rebuilder.exe
