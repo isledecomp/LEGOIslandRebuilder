@@ -43,6 +43,9 @@ jobs:
     - name: Upload to Releases
       shell: bash
       if: github.event_name == 'push'
+      env:
+        GITHUB_TOKEN: ${{ secrets.UPLOAD_KEY }}
+        TRAVIS_REPO_SLUG: itsmattkc/LEGOIslandRebuilder
       run: |
         curl -fLOSs --retry 2 --retry-delay 60 https://github.com/probonopd/uploadtool/raw/master/upload.sh
         ./upload.sh Rebuilder/obj/Release/Rebuilder.exe
