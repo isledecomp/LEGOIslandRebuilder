@@ -900,12 +900,6 @@ namespace Rebuilder
                     }
                 }
 
-                if (version == Version.kEnglish10 && patch_config.RedirectSaveData)
-                {
-                    incompatibilities += "- " + GetDisplayNameOfProperty("RedirectSaveData") + "\n";
-                    patch_config.RedirectSaveData = false;
-                }
-
                 if (patch_config.DisableAutoFinishBuilding)
                 {
                     if (version == Version.kEnglish10)
