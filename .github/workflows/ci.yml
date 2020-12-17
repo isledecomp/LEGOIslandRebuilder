@@ -33,12 +33,18 @@ jobs:
     
     - name: Build
       run: msbuild Rebuilder.sln /p:Configuration=Release
+    
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v2.2.1
+      with:
+        path: 
+          Rebuilder/obj/Release/Rebuilder.exe
 
     - name: Upload to Releases
       shell: bash
       if: github.event_name == 'push'
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.UPLOAD_KEY }}
         TRAVIS_REPO_SLUG: itsmattkc/LEGOIslandRebuilder
       run: |
         curl -fLOSs --retry 2 --retry-delay 60 https://github.com/probonopd/uploadtool/raw/master/upload.sh
