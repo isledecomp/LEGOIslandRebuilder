@@ -46,6 +46,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.UPLOAD_KEY }}
         TRAVIS_REPO_SLUG: itsmattkc/LEGOIslandRebuilder
+        TRAVIS_COMMIT: ${{ env.GITHUB_SHA }}
       run: |
         curl -fLOSs --retry 2 --retry-delay 60 https://github.com/probonopd/uploadtool/raw/master/upload.sh
         ./upload.sh Rebuilder/obj/Release/Rebuilder.exe
