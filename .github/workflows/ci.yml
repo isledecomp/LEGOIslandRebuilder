@@ -39,24 +39,13 @@ jobs:
       with:
         path: 
           Rebuilder/obj/Release/Rebuilder.exe
-          
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        draft: false
-        prerelease: false
 
-    - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
+    - name: Upload to Releases
+      shell: bash
+      if: github.event_name == 'push'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-        asset_path: Rebuilder/obj/Release/Rebuilder.exe
-        asset_name: Rebuilder.exe
-        asset_content_type: application/octet-stream
+        TRAVIS_REPO_SLUG: itsmattkc/LEGOIslandRebuilder
+      run: |
+        curl -fLOSs --retry 2 --retry-delay 60 https://github.com/probonopd/uploadtool/raw/master/upload.sh
+        ./upload.sh Rebuilder/obj/Release/Rebuilder.exe
