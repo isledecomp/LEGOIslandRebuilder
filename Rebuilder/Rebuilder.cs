@@ -341,6 +341,17 @@ namespace Rebuilder
                 set { disable_autofinish_building = value; }
             }
 
+            bool debug_toggle = false;
+            [Category("Gameplay")]
+            [DisplayName("Debug Mode")]
+            [Description("Enables the in-game debug mode automatically without the need to type OGEL.")]
+            [DefaultValue(false)]
+            public bool DebugToggle
+            {
+                get { return debug_toggle; }
+                set { debug_toggle = value; }
+            }
+
             bool music_toggle = true;
             [Category("Gameplay")]
             [DisplayName("Play Music")]
@@ -646,7 +657,8 @@ namespace Rebuilder
             using (FileStream isleexe = File.Open(isleexe_url, FileMode.Open, FileAccess.ReadWrite))
             {
                 long nav_offset, fov_offset_1, fov_offset_2, turn_speed_routine_loc, dsoundoffs1, 
-                     dsoundoffs2, dsoundoffs3, remove_fps_limit, jukebox_path_offset, model_quality_offset;
+                     dsoundoffs2, dsoundoffs3, remove_fps_limit, jukebox_path_offset, model_quality_offset,
+                     debug_toggle_offset;
 
                 switch (version) {
                 case Version.kEnglish10:
@@ -660,6 +672,7 @@ namespace Rebuilder
                     remove_fps_limit = 0x7A68B;
                     jukebox_path_offset = 0xD28F6;
                     model_quality_offset = 0xFF028;
+                    debug_toggle_offset = 0x54C1F;
                     break;
                 case Version.kEnglish11:
                 default:
@@ -673,6 +686,7 @@ namespace Rebuilder
                     remove_fps_limit = 0x7ABAB;
                     jukebox_path_offset = 0xD2E66;
                     model_quality_offset = 0xFF648;
+                    debug_toggle_offset = 0x54EBF;
                     break;
                 case Version.kGerman11:
                     nav_offset = 0xF3428;
@@ -685,6 +699,7 @@ namespace Rebuilder
                     remove_fps_limit = 0x7AD9B;
                     jukebox_path_offset = 0xD30A6;
                     model_quality_offset = 0xFF878;
+                    debug_toggle_offset = 0x54EBF;
                     break;
                 case Version.kDanish11:
                     nav_offset = 0xF3428;
@@ -697,6 +712,7 @@ namespace Rebuilder
                     remove_fps_limit = 0x7AD5B;
                     jukebox_path_offset = 0xD3056;
                     model_quality_offset = 0xFF868;
+                    debug_toggle_offset = 0x54EBF;
                     break;
                 case Version.kSpanish11:
                     nav_offset = 0xF3228;
@@ -709,6 +725,7 @@ namespace Rebuilder
                     remove_fps_limit = 0x7ACBB;
                     jukebox_path_offset = 0xD2F96;
                     model_quality_offset = 0xFF658;
+                    debug_toggle_offset = 0x54EBF;
                     break;
                 }
 
@@ -898,6 +915,11 @@ namespace Rebuilder
                         // Frees up 19 bytes of NOPs
                         WriteManyBytes(lego1dll, 0x90, 19);
                     }
+                }
+
+                if (patch_config.DebugToggle)
+                {
+                WriteByte(lego1dll, 0xEB, debug_toggle_offset);
                 }
 
                 if (patch_config.DisableAutoFinishBuilding)
