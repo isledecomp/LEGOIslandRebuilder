@@ -44,7 +44,7 @@ jobs:
       shell: bash
       if: github.event_name == 'push'
       env:
-        GITHUB_TOKEN: ${{ secrets.UPLOAD_KEY }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         TRAVIS_REPO_SLUG: itsmattkc/LEGOIslandRebuilder
         TRAVIS_COMMIT: ${{ github.sha }}
       run: |
