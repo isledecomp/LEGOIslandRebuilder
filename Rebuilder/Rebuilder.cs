@@ -49,6 +49,7 @@ namespace Rebuilder
 
         public enum ModelQualityType
         {
+            Infinite,
             High,
             Medium,
             Low
@@ -875,6 +876,9 @@ namespace Rebuilder
                     break;
                 case ModelQualityType.High:
                     WriteFloat(lego1dll, 5.0f, model_quality_offset);
+                    break;
+                case ModelQualityType.Infinite:
+                    WriteFloat(lego1dll, float.MaxValue, model_quality_offset);
                     break;
                 }
 
