@@ -193,7 +193,7 @@ namespace Rebuilder
             bool full_screen = true;
             [Category("Graphics")]
             [DisplayName("Run in Full Screen")]
-            [Description("Allows you to change modes without administrator privileges and registry editing.")]
+            [Description("Allows you to change modes without administrator privileges and registry editing. NOTE: Windowed mode is NOT compatible with LEGO Island's hardware modes.")]
             [DefaultValue(true)]
             public bool FullScreen
             {
