@@ -56,6 +56,17 @@ namespace Rebuilder
         }
 
         public class PatchList {
+            bool use_wasd = false;
+            [Category("Controls")]
+            [DisplayName("Use WASD")]
+            [Description("Enables the use of WASD keys for movement rather than the arrow keys.")]
+            [DefaultValue(false)]
+            public bool UseWASD
+            {
+                get { return use_wasd; }
+                set { use_wasd = value; }
+            }
+
             float turn_max_speed = 20.0F;
             [Category("Controls")]
             [DisplayName("Turning: Max Speed")]
@@ -657,7 +668,7 @@ namespace Rebuilder
             using (FileStream lego1dll = File.Open(lego1dll_url, FileMode.Open, FileAccess.ReadWrite))
             using (FileStream isleexe = File.Open(isleexe_url, FileMode.Open, FileAccess.ReadWrite))
             {
-                long nav_offset, fov_offset_1, fov_offset_2, turn_speed_routine_loc, dsoundoffs1, 
+                long nav_offset, fov_offset_1, fov_offset_2, turn_speed_routine_loc, dsoundoffs1,
                      dsoundoffs2, dsoundoffs3, remove_fps_limit, jukebox_path_offset, model_quality_offset,
                      debug_toggle_offset;
 
@@ -918,6 +929,47 @@ namespace Rebuilder
 
                         // Frees up 19 bytes of NOPs
                         WriteManyBytes(lego1dll, 0x90, 19);
+                    }
+                }
+
+                if (patch_config.UseWASD) // WASD Keycodes Patch
+                {
+                    switch (version)
+                    {
+                        case Version.kEnglish10:
+                            WriteByte(lego1dll, 0x41, 0x5B2EF);
+                            lego1dll.Position += 38;
+                            WriteByte(lego1dll, 0x44);
+                            lego1dll.Position += 18;
+                            WriteByte(lego1dll, 0xA6);
+                            WriteByte(lego1dll, 0x00);
+                            lego1dll.Position += 25;
+                            WriteByte(lego1dll, 0xB4);
+                            WriteByte(lego1dll, 0x00);
+                            lego1dll.Position += 17;
+                            WriteByte(lego1dll, 0xB3);
+                            WriteByte(lego1dll, 0x00);
+                            lego1dll.Position += 17;
+                            WriteByte(lego1dll, 0xB5);
+                            WriteByte(lego1dll, 0x00);
+                            break;
+                        default: // German, Spanish, Danish and English 1.1 have identicial offsets for this patch
+                            WriteByte(lego1dll, 0x41, 0x5B58F);
+                            lego1dll.Position += 38;
+                            WriteByte(lego1dll, 0x44);
+                            lego1dll.Position += 18;
+                            WriteByte(lego1dll, 0xA6);
+                            WriteByte(lego1dll, 0x00);
+                            lego1dll.Position += 25;
+                            WriteByte(lego1dll, 0xB4);
+                            WriteByte(lego1dll, 0x00);
+                            lego1dll.Position += 17;
+                            WriteByte(lego1dll, 0xB3);
+                            WriteByte(lego1dll, 0x00);
+                            lego1dll.Position += 17;
+                            WriteByte(lego1dll, 0xB5);
+                            WriteByte(lego1dll, 0x00);
+                            break;
                     }
                 }
 
