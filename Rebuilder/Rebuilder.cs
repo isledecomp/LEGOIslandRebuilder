@@ -1053,6 +1053,15 @@ namespace Rebuilder
                             Directory.CreateDirectory(new_save_dir);
                             dst.SetValue("savepath", new_save_dir);
                         }
+
+                        // Make sure to warn the user when running windowed mode and Direct3D HAL together
+                        if (!patch_config.FullScreen)
+                        {
+                            if ((string)dst.GetValue("3D Device Name") == "Direct3D HAL")
+                            {
+                                return (MessageBox.Show("It looks like LEGO Island is configured to run in Direct3D HAL mode. Direct3D HAL is NOT compatible with windowed mode. You must set LEGO Island to run in one of its software modes in the LEGO Island configuration to use windowed mode (RGB Emulation is recommended for most computers).", "Invalid Settings Detected", MessageBoxButtons.OK, MessageBoxIcon.Warning) == DialogResult.Yes);
+                            }
+                        }
                     }
                 }
             }
