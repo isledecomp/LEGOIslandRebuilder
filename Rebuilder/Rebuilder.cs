@@ -59,7 +59,7 @@ namespace Rebuilder
             bool use_wasd = false;
             [Category("Controls")]
             [DisplayName("Use WASD")]
-            [Description("Enables the use of WASD keys for movement rather than the arrow keys.")]
+            [Description("Enables the use of WASD keys for movement rather than the arrow keys. NOTE: When using Debug Mode, this patch will re-map the conflicting debug keys to the arrow keys.")]
             [DefaultValue(false)]
             public bool UseWASD
             {
@@ -937,7 +937,17 @@ namespace Rebuilder
                     switch (version)
                     {
                         case Version.kEnglish10:
-                            WriteByte(lego1dll, 0x41, 0x5B2EF);
+                            WriteByte(lego1dll, 0x02, 0x55B20); // We write to the debug mode table here to prevent the keys from colliding
+                            lego1dll.Position += 1;
+                            WriteByte(lego1dll, 0x04);
+                            WriteByte(lego1dll, 0x0F);
+                            lego1dll.Position += 24;
+                            WriteByte(lego1dll, 0x18);
+                            lego1dll.Position += 2;
+                            WriteByte(lego1dll, 0x18);
+                            lego1dll.Position += 14;
+                            WriteByte(lego1dll, 0x18);
+                            WriteByte(lego1dll, 0x41, 0x5B2EF); // Actual movement keycodes patch starts here
                             lego1dll.Position += 38;
                             WriteByte(lego1dll, 0x44);
                             lego1dll.Position += 18;
@@ -953,7 +963,17 @@ namespace Rebuilder
                             WriteByte(lego1dll, 0xB5);
                             WriteByte(lego1dll, 0x00);
                             break;
-                        default: // German, Spanish, Danish and English 1.1 have identicial offsets for this patch
+                        default: // German, Spanish, Danish and English 1.1 have identical offsets for this patch
+                            WriteByte(lego1dll, 0x02, 0x55DC0);
+                            lego1dll.Position += 1;
+                            WriteByte(lego1dll, 0x04);
+                            WriteByte(lego1dll, 0x0F);
+                            lego1dll.Position += 24;
+                            WriteByte(lego1dll, 0x18);
+                            lego1dll.Position += 2;
+                            WriteByte(lego1dll, 0x18);
+                            lego1dll.Position += 14;
+                            WriteByte(lego1dll, 0x18);
                             WriteByte(lego1dll, 0x41, 0x5B58F);
                             lego1dll.Position += 38;
                             WriteByte(lego1dll, 0x44);
