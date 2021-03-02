@@ -204,7 +204,7 @@ namespace Rebuilder
             bool full_screen = true;
             [Category("Graphics")]
             [DisplayName("Run in Full Screen")]
-            [Description("Allows you to change modes without administrator privileges and registry editing. NOTE: Windowed mode is NOT compatible with LEGO Island's hardware modes.")]
+            [Description("Allows you to change modes without administrator privileges and registry editing. NOTE: Windowed mode is NOT compatible with \"Flip Video Memory Pages\".")]
             [DefaultValue(true)]
             public bool FullScreen
             {
@@ -1059,7 +1059,7 @@ namespace Rebuilder
                         {
                             if ((string)dst.GetValue("Flip Surfaces") == "YES")
                             {
-                                return (MessageBox.Show("It looks like LEGO Island is configured to run in hardware mode. Hardware mode is NOT compatible with windowed mode. You must set LEGO Island to run in one of its software modes in the LEGO Island configuration to use windowed mode (RGB Emulation is recommended for most computers).", "Invalid Settings Detected", MessageBoxButtons.OK, MessageBoxIcon.Warning) == DialogResult.Yes);
+                                return (MessageBox.Show("It looks like LEGO Island is configured to Flip Video Memory Pages. This setting is incompatible with LEGO Island's windowed mode. You must either uncheck this setting in the LEGO Island configuration, or switch to a purely software based mode (like RGB Emulation) to use windowed mode.", "Invalid Settings Detected", MessageBoxButtons.OK, MessageBoxIcon.Warning) == DialogResult.Yes);
                             }
                         }
                     }
