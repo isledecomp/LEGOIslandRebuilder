@@ -10,8 +10,11 @@ A launcher and mod/patch tool for the 1997 video game *LEGO Island*.
 
 Rebuilder makes no permanent changes to your *LEGO Island* installation and none of its patches require administrator privileges (it can also patch the parts of *LEGO Island* that require administrator privileges).
 
-Tested with the following versions of LEGO Island ([identify your version](https://www.legoisland.org/index.php/Lego_Island_Versions)):
+Tested with the following versions of LEGO Island ([identify your version](https://www.legoisland.org/wiki/index.php/LEGO_Island_Versions)):
 * English v1.0 / August Build
 * English v1.1 / September Build
+* German v1.1
+* Danish v1.1
+* Spanish 1.1
 
 Research done towards developing this tool is documented at [the LEGO Island Modding Wiki](http://www.legoisland.org/).
