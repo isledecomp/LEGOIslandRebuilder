@@ -18,3 +18,15 @@ Tested with the following versions of LEGO Island ([identify your version](https
 * Spanish 1.1
 
 Research done towards developing this tool is documented at [the LEGO Island Modding Wiki](http://www.legoisland.org/).
+
+# Usage
+
+Running Rebuilder will open a GUI you can use to select which patches you'd like to run the game with.
+
+To use the music insertion functions, open the Music tab to display a list of the music files in the game. You can then pick and choose which ones you'd like to replace.
+
+The Run button will launch the game with the current settings. The Kill button will close all currently running instances of the game.
+
+Rebuilder also supports command line args:
+* `-r`/`--run`: Runs LEGO Island with the currently saved configuration, bypassing Rebuilder's GUI. 
+* `-h`/`--help`: Shows a help page.
