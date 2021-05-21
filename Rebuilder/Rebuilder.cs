@@ -1315,10 +1315,13 @@ namespace Rebuilder
                 p.Exited += new EventHandler(ProcessExit);
                 processes.Add(p);
 
-                form.run_button.Text = ConfigForm.run_button_kill;
-                if (patch_config.MultipleInstances)
+                if (form != null)
                 {
-                    form.run_additional_button.Visible = true;
+                    form.run_button.Text = ConfigForm.run_button_kill;
+                    if (patch_config.MultipleInstances)
+                    {
+                        form.run_additional_button.Visible = true;
+                    }
                 }
 
                 Log("Game launched successfully");
