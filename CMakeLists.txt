@@ -7,6 +7,7 @@ set(CMAKE_MFC_FLAG 2)
 option(BUILD_UNICODE "Build with Unicode support" ON)
 
 add_executable(Rebuilder WIN32
+  res/res.rc
   src/app.cpp
   src/app.h
   src/window.cpp

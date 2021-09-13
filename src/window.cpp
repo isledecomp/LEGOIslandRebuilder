@@ -11,6 +11,13 @@ CRebuilderWindow::CRebuilderWindow()
   // Create form
   Create(NULL, _T("LEGO Island Rebuilder"));
 
+  // Set window icon to application icon
+  TCHAR filename[MAX_PATH];
+  GetModuleFileName(NULL, filename, MAX_PATH);
+  WORD index;
+  HICON icon = ExtractAssociatedIcon(AfxGetInstanceHandle(), filename, &index);
+  SetIcon(icon, TRUE);
+
   // Get default Win32 dialog font
   m_fDialogFont.CreateStockObject(DEFAULT_GUI_FONT);
 
