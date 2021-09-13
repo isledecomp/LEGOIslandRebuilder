@@ -60,11 +60,25 @@ LRESULT CRebuilderWindow::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
 {
   switch (message) {
   case WM_SIZE:
+  {
     UINT width = LOWORD(lParam);
     UINT height = HIWORD(lParam);
 
     LayoutObjects(width, height);
     break;
+  }
+  case WM_GETMINMAXINFO:
+  {
+    static const LONG minimumWindowWidth = 160;
+    static const LONG minimumWindowHeight = 160;
+
+    MINMAXINFO *minmaxInfo = (MINMAXINFO*)lParam;
+
+    minmaxInfo->ptMinTrackSize.x = minimumWindowWidth;
+    minmaxInfo->ptMinTrackSize.y = minimumWindowHeight;
+
+    return 0;
+  }
   }
 
   return super::WindowProc(message, wParam, lParam);
