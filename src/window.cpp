@@ -44,6 +44,24 @@ CRebuilderWindow::CRebuilderWindow()
   m_cTopLevelSubtitle.Create(_T("by MattKC (itsmattkc.com)"), WS_CHILD | WS_VISIBLE | SS_CENTER, CRect(), this);
   m_cTopLevelSubtitle.SetFont(&m_fDialogFont);
 
+  // Create tab control
+  m_cTabCtrl.Create(WS_CHILD | WS_VISIBLE, CRect(), this, IDI_TABCTRL);
+  m_cTabCtrl.SetFont(&m_fDialogFont);
+
+  // Add "patches" tab
+  TCITEM patchesItem;
+  ZeroMemory(&patchesItem, sizeof(patchesItem));
+  patchesItem.pszText = _T("Patches");
+  patchesItem.mask |= TCIF_TEXT;
+  m_cTabCtrl.InsertItem(0, &patchesItem);
+
+  // Add "music" tab
+  TCITEM musicItem;
+  ZeroMemory(&musicItem, sizeof(musicItem));
+  musicItem.pszText = _T("Music");
+  musicItem.mask |= TCIF_TEXT;
+  m_cTabCtrl.InsertItem(1, &musicItem);
+
   // Create run button
   m_cRunBtn.Create(_T("Run"), WS_CHILD | WS_VISIBLE, CRect(), this, IDI_RUN);
   m_cRunBtn.SetFont(&m_fBoldDialogFont);
@@ -86,12 +104,23 @@ LRESULT CRebuilderWindow::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
 
 void CRebuilderWindow::LayoutObjects(UINT width, UINT height)
 {
-  const int btnHeight = 25;
+  const int padding = m_nFontHeight/2;
+  const int dblPadding = padding * 2;
 
-  int padding = m_nFontHeight/2;
-
+  // Top components
   m_cTopLevelTitle.SetWindowPos(NULL, 0, padding, width, m_nFontHeight*2, 0);
-  m_cTopLevelSubtitle.SetWindowPos(NULL, 0, padding+m_nFontHeight*2, width, m_nFontHeight, 0);
 
-  m_cRunBtn.SetWindowPos(NULL, padding, height - btnHeight - padding, width - padding * 2, btnHeight, 0);
+  int topComponentEnd = padding+m_nFontHeight*2;
+  m_cTopLevelSubtitle.SetWindowPos(NULL, 0, topComponentEnd, width, m_nFontHeight, 0);
+  topComponentEnd += m_nFontHeight;
+
+  // Bottom components
+  const int btnHeight = 25;
+  int bottomComponentStart = height - btnHeight - padding;
+  int bottomComponentWidth = width - dblPadding;
+  m_cRunBtn.SetWindowPos(NULL, padding, bottomComponentStart, bottomComponentWidth, btnHeight, 0);
+
+  // Center components
+  int centerHeight = bottomComponentStart - topComponentEnd;
+  m_cTabCtrl.SetWindowPos(NULL, padding, topComponentEnd + padding, bottomComponentWidth, centerHeight - dblPadding, 0);
 }
