@@ -1,6 +1,8 @@
 #include "window.h"
 
-#define super CFrameWnd
+#include "launcher.h"
+
+#define super CWnd
 
 CRebuilderWindow::CRebuilderWindow()
 {
@@ -8,45 +10,24 @@ CRebuilderWindow::CRebuilderWindow()
   static const UINT defaultWindowWidth = 420;
   static const UINT defaultWindowHeight = 420;
 
+  // Register custom window class
+  LPCTSTR wndclass = AfxRegisterWndClass(CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW,
+                                         LoadCursor(NULL, IDC_ARROW),
+                                         (HBRUSH) (COLOR_WINDOW),
+                                         LoadIcon(AfxGetInstanceHandle(), _T("IDI_ICON1")));
+
   // Create form
-  Create(NULL, _T("LEGO Island Rebuilder"));
-
-  // Set window icon to application icon
-  TCHAR filename[MAX_PATH];
-  GetModuleFileName(NULL, filename, MAX_PATH);
-  WORD index;
-  HICON icon = ExtractAssociatedIcon(AfxGetInstanceHandle(), filename, &index);
-  SetIcon(icon, TRUE);
-
-  // Get default Win32 dialog font
-  m_fDialogFont.CreateStockObject(DEFAULT_GUI_FONT);
-
-  // Create bolded variant of the above
-  LOGFONT lf;
-  m_fDialogFont.GetLogFont(&lf);
-  lf.lfWeight = FW_BOLD;
-  m_fBoldDialogFont.CreateFontIndirect(&lf);
-
-  // Get information about font height for layout
-  HDC hDC = ::GetDC(NULL);
-  HGDIOBJ hFontOld = SelectObject(hDC, m_fDialogFont.GetSafeHandle());
-  TEXTMETRIC tm;
-  GetTextMetrics(hDC, &tm);
-  m_nFontHeight = tm.tmHeight + tm.tmExternalLeading;
-  SelectObject(hDC, hFontOld);
-  ::ReleaseDC(NULL, hDC);
+  CreateEx(WS_EX_OVERLAPPEDWINDOW, wndclass, _T("LEGO Island Rebuilder"), WS_OVERLAPPEDWINDOW, 0, 0, 0, 0, NULL, NULL);
+  ModifyStyleEx(WS_EX_CLIENTEDGE, 0, 0);
 
   // Create title
   m_cTopLevelTitle.Create(_T("LEGO Island Rebuilder"), WS_CHILD | WS_VISIBLE | SS_CENTER, CRect(), this);
-  m_cTopLevelTitle.SetFont(&m_fBoldDialogFont);
 
   // Create subtitle
   m_cTopLevelSubtitle.Create(_T("by MattKC (itsmattkc.com)"), WS_CHILD | WS_VISIBLE | SS_CENTER, CRect(), this);
-  m_cTopLevelSubtitle.SetFont(&m_fDialogFont);
 
   // Create tab control
-  m_cTabCtrl.Create(WS_CHILD | WS_VISIBLE, CRect(), this, IDI_TABCTRL);
-  m_cTabCtrl.SetFont(&m_fDialogFont);
+  m_cTabCtrl.Create(WS_CHILD | WS_VISIBLE, CRect(), this, ID_TABCTRL);
 
   // Add "patches" tab
   TCITEM patchesItem;
@@ -63,46 +44,42 @@ CRebuilderWindow::CRebuilderWindow()
   m_cTabCtrl.InsertItem(1, &musicItem);
 
   // Create run button
-  m_cRunBtn.Create(_T("Run"), WS_CHILD | WS_VISIBLE, CRect(), this, IDI_RUN);
-  m_cRunBtn.SetFont(&m_fBoldDialogFont);
+  m_cRunBtn.Create(_T("Run"), WS_CHILD | WS_VISIBLE, CRect(), this, ID_RUN);
+
+  // Create run button
+  m_cKillBtn.Create(_T("Kill"), WS_CHILD, CRect(), this, ID_KILL);
 
   // Call this after all UI objects are created because this will call LayoutObjects
   SetWindowPos(NULL, 0, 0, defaultWindowWidth, defaultWindowHeight, 0);
   CenterWindow(NULL);
 
-  // Set background color to Win32 window color
-  ::SetClassLong(GetSafeHwnd(), GCL_HBRBACKGROUND, COLOR_WINDOW);
+  // Set fonts
+  SetGUIFonts();
 }
 
-LRESULT CRebuilderWindow::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
+void CRebuilderWindow::OnRunClick()
 {
-  switch (message) {
-  case WM_SIZE:
-  {
-    UINT width = LOWORD(lParam);
-    UINT height = HIWORD(lParam);
+  HANDLE proc = Launcher::Launch(this->GetSafeHwnd());
 
-    LayoutObjects(width, height);
-    break;
+  if (proc) {
+    m_lProcesses.push_back(proc);
+    m_cRunBtn.ShowWindow(SW_HIDE);
+    m_cKillBtn.ShowWindow(SW_SHOWNORMAL);
   }
-  case WM_GETMINMAXINFO:
-  {
-    static const LONG minimumWindowWidth = 160;
-    static const LONG minimumWindowHeight = 160;
-
-    MINMAXINFO *minmaxInfo = (MINMAXINFO*)lParam;
-
-    minmaxInfo->ptMinTrackSize.x = minimumWindowWidth;
-    minmaxInfo->ptMinTrackSize.y = minimumWindowHeight;
-
-    return 0;
-  }
-  }
-
-  return super::WindowProc(message, wParam, lParam);
 }
 
-void CRebuilderWindow::LayoutObjects(UINT width, UINT height)
+void CRebuilderWindow::OnKillClick()
+{
+  for (std::vector<HANDLE>::iterator it=m_lProcesses.begin(); it!=m_lProcesses.end(); it++) {
+    TerminateProcess(*it, 0);
+  }
+  m_lProcesses.clear();
+
+  m_cKillBtn.ShowWindow(SW_HIDE);
+  m_cRunBtn.ShowWindow(SW_SHOWNORMAL);
+}
+
+void CRebuilderWindow::OnSize(UINT type, int width, int height)
 {
   const int padding = m_nFontHeight/2;
   const int dblPadding = padding * 2;
@@ -119,8 +96,62 @@ void CRebuilderWindow::LayoutObjects(UINT width, UINT height)
   int bottomComponentStart = height - btnHeight - padding;
   int bottomComponentWidth = width - dblPadding;
   m_cRunBtn.SetWindowPos(NULL, padding, bottomComponentStart, bottomComponentWidth, btnHeight, 0);
+  m_cKillBtn.SetWindowPos(NULL, padding, bottomComponentStart, bottomComponentWidth, btnHeight, 0);
 
   // Center components
   int centerHeight = bottomComponentStart - topComponentEnd;
   m_cTabCtrl.SetWindowPos(NULL, padding, topComponentEnd + padding, bottomComponentWidth, centerHeight - dblPadding, 0);
 }
+
+void CRebuilderWindow::OnGetMinMaxInfo(MINMAXINFO *info)
+{
+  static const LONG minimumWindowWidth = 160;
+  static const LONG minimumWindowHeight = 160;
+
+  info->ptMinTrackSize.x = minimumWindowWidth;
+  info->ptMinTrackSize.y = minimumWindowHeight;
+}
+
+BOOL CRebuilderWindow::SetFont(HWND child, LPARAM font)
+{
+  ::SendMessage(child, WM_SETFONT, font, true);
+  return true;
+}
+
+void CRebuilderWindow::SetGUIFonts()
+{
+  // Retrieve default GUI font
+  HFONT defaultFont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+
+  // Set on all UI objects
+  EnumChildWindows(this->GetSafeHwnd(), (WNDENUMPROC)SetFont, (LPARAM)defaultFont);
+
+  // Get LOGFONT to create bold variant
+  LOGFONT lf;
+  GetObject(defaultFont, sizeof(lf), &lf);
+  lf.lfWeight = FW_BOLD;
+
+  // Create font from LOGFONT
+  HFONT bold = CreateFontIndirect(&lf);
+
+  // Set bold variant on relevant objects
+  SetFont(m_cTopLevelTitle.GetSafeHwnd(), (LPARAM)bold);
+  SetFont(m_cRunBtn.GetSafeHwnd(), (LPARAM)bold);
+  SetFont(m_cKillBtn.GetSafeHwnd(), (LPARAM)bold);
+
+  // While here, get height of font for layout purposes
+  HDC hDC = ::GetDC(NULL);
+  HGDIOBJ hFontOld = SelectObject(hDC, defaultFont);
+  TEXTMETRIC tm;
+  GetTextMetrics(hDC, &tm);
+  m_nFontHeight = tm.tmHeight + tm.tmExternalLeading;
+  SelectObject(hDC, hFontOld);
+  ::ReleaseDC(NULL, hDC);
+}
+
+BEGIN_MESSAGE_MAP(CRebuilderWindow, super)
+  ON_WM_SIZE()
+  ON_WM_GETMINMAXINFO()
+  ON_BN_CLICKED(ID_RUN, OnRunClick)
+  ON_BN_CLICKED(ID_KILL, OnKillClick)
+END_MESSAGE_MAP()

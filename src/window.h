@@ -3,24 +3,32 @@
 
 #include <AFXCMN.H>
 #include <AFXWIN.H>
+#include <VECTOR>
 
 class CRebuilderWindow : public CFrameWnd
 {
 public:
   CRebuilderWindow();
 
-  virtual LRESULT WindowProc(UINT message, WPARAM wParam, LPARAM lParam);
+  afx_msg void OnRunClick();
+
+  afx_msg void OnKillClick();
+
+  afx_msg void OnSize(UINT type, int width, int height);
+
+  afx_msg void OnGetMinMaxInfo(MINMAXINFO *info);
+
+  static BOOL CALLBACK SetFont(HWND child, LPARAM font);
 
 private:
-  void LayoutObjects(UINT width, UINT height);
+  void SetGUIFonts();
 
   enum {
-    IDI_RUN,
-    IDI_TABCTRL
+    ID_RUN = 1000,
+    ID_KILL,
+    ID_TABCTRL
   };
 
-  CFont m_fDialogFont;
-  CFont m_fBoldDialogFont;
   UINT m_nFontHeight;
 
   CStatic m_cTopLevelTitle;
@@ -29,6 +37,11 @@ private:
   CTabCtrl m_cTabCtrl;
 
   CButton m_cRunBtn;
+  CButton m_cKillBtn;
+
+  std::vector<HANDLE> m_lProcesses;
+
+  DECLARE_MESSAGE_MAP()
 
 };
 
