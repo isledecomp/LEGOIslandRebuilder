@@ -5,6 +5,8 @@
 #include <AFXWIN.H>
 #include <VECTOR>
 
+#include "clinkstatic.h"
+
 class CRebuilderWindow : public CFrameWnd
 {
 public:
@@ -14,30 +16,49 @@ public:
 
   afx_msg void OnKillClick();
 
+  afx_msg void OnSubtitleClick();
+
   afx_msg void OnSize(UINT type, int width, int height);
 
   afx_msg void OnGetMinMaxInfo(MINMAXINFO *info);
 
+  afx_msg void OnTabSelChange(NMHDR* pNMHDR, LRESULT* pResult);
+
   static BOOL CALLBACK SetFont(HWND child, LPARAM font);
+
+  virtual LRESULT WindowProc(UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 private:
   void SetGUIFonts();
 
+  void SwitchButtonMode(BOOL running);
+
   enum {
     ID_RUN = 1000,
     ID_KILL,
-    ID_TABCTRL
+    ID_TABCTRL,
+    ID_SUBTITLE,
+    ID_PATCHGRID,
+    ID_COUNT
+  };
+
+  enum Tab {
+    TAB_PATCHES,
+    TAB_MUSIC
   };
 
   UINT m_nFontHeight;
 
   CStatic m_cTopLevelTitle;
-  CStatic m_cTopLevelSubtitle;
+  CLinkStatic m_cTopLevelSubtitle;
 
   CTabCtrl m_cTabCtrl;
 
   CButton m_cRunBtn;
   CButton m_cKillBtn;
+
+  CStatic m_cPatchGrid;
+  CStatic m_cMusicTable;
 
   std::vector<HANDLE> m_lProcesses;
 
