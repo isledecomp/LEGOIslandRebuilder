@@ -20,6 +20,7 @@ add_library(Rebld SHARED
   lib/worker.cpp
   lib/worker.h
 )
+target_compile_options(Rebld PRIVATE /MT)
 target_link_libraries(Rebld PRIVATE winmm.lib)
 
 # Add property grid
