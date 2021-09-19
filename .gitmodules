@@ -1,0 +1,3 @@
+[submodule "ext/PropertyGrid"]
+	path = ext/PropertyGrid
+	url = https://github.com/itsmattkc/PropertyGrid
