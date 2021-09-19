@@ -95,7 +95,7 @@ LPVOID OverwriteImport(LPVOID imageBase, LPCSTR overrideFunction, LPVOID overrid
         PIMAGE_IMPORT_BY_NAME functionName = (PIMAGE_IMPORT_BY_NAME)((UINT_PTR)imageBase + (UINT_PTR)originalFirstThunk->u1.AddressOfData);
 
         if (!strcmp((const char*)functionName->Name, overrideFunction)) {
-          LPVOID originalFunction = firstThunk->u1.Function;
+          LPVOID originalFunction = (LPVOID)firstThunk->u1.Function;
           firstThunk->u1.Function = (PDWORD)override;
 
           // Return original function and end loop here
