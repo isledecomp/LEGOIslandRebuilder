@@ -53,8 +53,9 @@ CRebuilderWindow::CRebuilderWindow()
 
   delete [] tabItem.pszText;
 
-  // Create property grid (placeholder right now)
-  m_cPatchGrid.Create(_T("Property Grid"), WS_CHILD | WS_VISIBLE, CRect(), &m_cTabCtrl);
+  // Create property grid
+  m_cPatchGrid.Create(AfxRegisterWndClass(CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW), _T("Patch Grid"), WS_CHILD | WS_VISIBLE, CRect(), &m_cTabCtrl, ID_PATCHGRID);
+
   m_cMusicTable.Create(_T("Music Tab"), WS_CHILD, CRect(), &m_cTabCtrl);
 
   // Create run button
@@ -71,6 +72,11 @@ CRebuilderWindow::CRebuilderWindow()
   static const UINT defaultWindowHeight = 32;
   SetWindowPos(NULL, 0, 0, m_nFontHeight * defaultWindowWidth, m_nFontHeight * defaultWindowHeight, 0);
   CenterWindow(NULL);
+
+  // Set column width
+  RECT patchGridClientRect;
+  m_cPatchGrid.GetClientRect(&patchGridClientRect);
+  m_cPatchGrid.SetGutterWidth((patchGridClientRect.right - patchGridClientRect.left) / 2);
 }
 
 DWORD WINAPI WaitForProcessToClose(HANDLE hProcess)

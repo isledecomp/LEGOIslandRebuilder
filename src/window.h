@@ -6,6 +6,7 @@
 #include <VECTOR>
 
 #include "clinkstatic.h"
+#include "patchgrid.h"
 
 class CRebuilderWindow : public CFrameWnd
 {
@@ -57,7 +58,8 @@ private:
   CButton m_cRunBtn;
   CButton m_cKillBtn;
 
-  CStatic m_cPatchGrid;
+  PatchGrid m_cPatchGrid;
+
   CStatic m_cMusicTable;
 
   std::vector<HANDLE> m_lProcesses;

@@ -22,6 +22,10 @@ add_library(Rebld SHARED
 )
 target_link_libraries(Rebld PRIVATE winmm.lib)
 
+# Add property grid
+set(PROPERTYGRID_BUILD_APP OFF CACHE BOOL "")
+add_subdirectory(ext/PropertyGrid)
+
 #
 # Build launcher/configuration executable
 #
@@ -34,6 +38,8 @@ add_executable(Rebuilder WIN32
   src/clinkstatic.h
   src/launcher.cpp
   src/launcher.h
+  src/patchgrid.cpp
+  src/patchgrid.h
   src/window.cpp
   src/window.h
 )
@@ -44,7 +50,7 @@ if (BUILD_UNICODE)
   target_link_options(Rebuilder PRIVATE /entry:wWinMainCRTStartup)
 endif()
 
-target_link_libraries(Rebuilder PRIVATE shlwapi.lib)
+target_link_libraries(Rebuilder PRIVATE shlwapi.lib PropertyGrid)
 
 # Ensure DLL is compiled before resource is built into executable
 set_source_files_properties(res/res.rc PROPERTIES OBJECT_DEPENDS Rebld)
