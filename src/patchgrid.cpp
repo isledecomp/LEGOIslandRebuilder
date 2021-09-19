@@ -129,6 +129,21 @@ PatchGrid::PatchGrid()
            AddBoolItem(sectionMusic, _T("Play Music"), true));
 }
 
+BOOL PatchGrid::SaveConfiguration(LPCTSTR filename)
+{
+  LPCTSTR appName = TEXT("Rebuilder");
+
+  for (std::map<std::string, HITEM>::const_iterator it=m_mPatchItems.begin(); it!=m_mPatchItems.end(); it++) {
+    std::string value;
+    this->GetItemValue(it->second, value);
+    if (!WritePrivateProfileString(appName, it->first.c_str(), value.c_str(), filename)) {
+      return FALSE;
+    }
+  }
+
+  return TRUE;
+}
+
 void PatchGrid::AddPatch(const string &id, const CString &description, HITEM item)
 {
   m_mPatchItems[id] = item;

@@ -9,6 +9,8 @@ class PatchGrid : public CPropertyGrid
 public:
   PatchGrid();
 
+  BOOL SaveConfiguration(LPCTSTR filename);
+
 private:
   void AddPatch(const std::string &id, const CString &description, HITEM item);
 
