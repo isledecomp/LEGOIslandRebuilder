@@ -11,6 +11,10 @@ option(BUILD_UNICODE "Build with Unicode support" ON)
 # Build our code injected DLL
 #
 add_library(Rebld SHARED
+  cmn/path.cpp
+  cmn/path.h
+  lib/config.cpp
+  lib/config.h
   lib/dllmain.cpp
   lib/hooks.cpp
   lib/hooks.h
@@ -21,7 +25,7 @@ add_library(Rebld SHARED
   lib/worker.h
 )
 target_compile_options(Rebld PRIVATE /MT)
-target_link_libraries(Rebld PRIVATE winmm.lib)
+target_link_libraries(Rebld PRIVATE winmm.lib shlwapi.lib)
 
 # Add property grid
 set(PROPERTYGRID_BUILD_APP OFF CACHE BOOL "")
@@ -31,6 +35,8 @@ add_subdirectory(ext/PropertyGrid)
 # Build launcher/configuration executable
 #
 add_executable(Rebuilder WIN32
+  cmn/path.cpp
+  cmn/path.h
   res/res.rc
   res/resource.h
   src/app.cpp

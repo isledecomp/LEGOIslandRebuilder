@@ -21,6 +21,17 @@ HWND WINAPI InterceptCreateWindowExA(
   LPVOID         lpParam
 );
 
+LONG
+APIENTRY
+InterceptRegQueryValueExA (
+    HKEY hKey,
+    LPCSTR lpValueName,
+    LPDWORD lpReserved,
+    LPDWORD lpType,
+    LPBYTE lpData,
+    LPDWORD lpcbData
+);
+
 HWND WINAPI InterceptFindWindowA(LPCSTR lpClassName, LPCSTR lpWindowName);
 
 typedef HRESULT (WINAPI *ddCreateFunction)(GUID *lpGUID, LPDIRECTDRAW *lplpDD, IUnknown *pUnkOuterS);

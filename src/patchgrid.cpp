@@ -1,5 +1,9 @@
 #include "patchgrid.h"
 
+#include <SSTREAM>
+
+#include "../cmn/path.h"
+
 PatchGrid::PatchGrid()
 {
   SetBoldModified(true);
@@ -39,13 +43,14 @@ PatchGrid::PatchGrid()
   HSECTION sectionControls = AddSection(_T("Controls"));
 
   AddPatch("UseWASD",
-           _T(""),
+           _T("Enables the use of WASD keys for movement rather than the arrow keys. "
+              "NOTE: When using Debug Mode, this patch will re-map the conflicting debug keys to the arrow keys."),
            AddBoolItem(sectionControls, _T("Use WASD"), false));
   AddPatch("UseJoystick",
-           _T(""),
+           _T("Enables Joystick functionality."),
            AddBoolItem(sectionControls, _T("Use Joystick"), false));
   AddPatch("MouseDeadzone",
-           _T(""),
+           _T("Sets the radius from the center of the screen where the mouse will do nothing (40 = default)."),
            AddIntegerItem(sectionControls, _T("Mouse Deadzone"), 40));
   AddPatch("UnhookTurnSpeed",
            _T("LEGO Island contains a bug where the turning speed is influenced by the frame rate. Enable this to make the turn speed independent of the frame rate."),
@@ -129,12 +134,55 @@ PatchGrid::PatchGrid()
            AddBoolItem(sectionMusic, _T("Play Music"), true));
 }
 
+template<typename T>
+std::string toString(const T &value)
+{
+  std::ostringstream oss;
+  oss << value;
+  return oss.str();
+}
+
 BOOL PatchGrid::SaveConfiguration(LPCTSTR filename)
 {
-  LPCTSTR appName = TEXT("Rebuilder");
-
   for (std::map<std::string, HITEM>::const_iterator it=m_mPatchItems.begin(); it!=m_mPatchItems.end(); it++) {
+    CItem *item = FindItem(it->second);
+
     std::string value;
+
+    // Convert value to string
+    switch (item->m_type) {
+    case IT_STRING:
+    case IT_TEXT:
+    case IT_FILE:
+    case IT_FOLDER:
+      value = item->m_strValue;
+      break;
+    case IT_BOOLEAN:
+      value = toString(item->m_bValue);
+      break;
+    case IT_COMBO:
+    case IT_INTEGER:
+      value = toString(item->m_nValue);
+      break;
+    case IT_DOUBLE:
+      value = toString(item->m_dValue);
+      break;
+    case IT_COLOR:
+      value = toString(item->m_clrValue);
+      break;
+    case IT_CUSTOM:
+    case IT_DATE:
+    case IT_DATETIME:
+    case IT_FONT:
+    {
+      // Report inability to serialize
+      TCHAR buf[200];
+      sprintf(buf, "Failed to serialize %s to string.", it->first.c_str());
+      MessageBox(buf);
+      break;
+    }
+    }
+
     this->GetItemValue(it->second, value);
     if (!WritePrivateProfileString(appName, it->first.c_str(), value.c_str(), filename)) {
       return FALSE;

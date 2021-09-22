@@ -34,8 +34,6 @@ private:
 
   void SwitchButtonMode(BOOL running);
 
-  BOOL GetConfigPath(LPTSTR s);
-
   enum {
     ID_RUN = 1000,
     ID_KILL,
