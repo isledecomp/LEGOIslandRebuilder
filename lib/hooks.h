@@ -40,4 +40,6 @@ HRESULT WINAPI InterceptDirectDrawCreate(GUID *lpGUID, LPDIRECTDRAW *lplpDD, IUn
 
 HRESULT WINAPI InterceptSurfaceGetDesc(LPDIRECTDRAWSURFACE lpDDSurface, LPDDSURFACEDESC lpDDSurfaceDesc);
 
+VOID WINAPI InterceptSleep(DWORD dwMilliseconds);
+
 #endif // HOOKS_H

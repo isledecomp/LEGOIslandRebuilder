@@ -1,5 +1,6 @@
 #include "hooks.h"
 
+#include <MATH.H>
 #include <STDIO.H>
 
 #include "../cmn/path.h"
@@ -172,9 +173,22 @@ LONG WINAPI InterceptRegQueryValueExA(HKEY hKey, LPCSTR lpValueName, LPDWORD lpR
     // Pass through
 
   } else {
-    MessageBoxA(isleWindow, lpValueName, "ISLE asked for...", 0);
+
+    printf("Passed through requested registry key \"%s\"\n", lpValueName);
+
   }
 
   // Pass these through
   return RegQueryValueExA(hKey, lpValueName, lpReserved, lpType, lpData, lpcbData);
+}
+
+void WINAPI InterceptSleep(DWORD dwMilliseconds)
+{
+  // Do nothing
+  /*std::string fps_behavior = config.GetString(_T("FPSLimit"));
+
+  if (fps_behavior != "Uncapped") {
+    // Pass through to default function unless uncapped, in which case no sleep is done at all
+    Sleep(dwMilliseconds);
+  }*/
 }

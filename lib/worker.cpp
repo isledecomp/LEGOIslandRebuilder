@@ -22,6 +22,8 @@ DWORD WINAPI Patch()
   OverwriteImport(exeBase, "CreateWindowExA", (LPVOID)InterceptCreateWindowExA);
   OverwriteImport(dllBase, "OutputDebugStringA", (LPVOID)InterceptOutputDebugStringA);
   OverwriteImport(exeBase, "RegQueryValueExA", (LPVOID)InterceptRegQueryValueExA);
+  OverwriteImport(dllBase, "Sleep", (LPVOID)InterceptSleep);
+  OverwriteImport(exeBase, "Sleep", (LPVOID)InterceptSleep);
   ddCreateOriginal = (ddCreateFunction)OverwriteImport(dllBase, "DirectDrawCreate", (LPVOID)InterceptDirectDrawCreate);
 
   // Stay active when defocused
@@ -50,9 +52,45 @@ DWORD WINAPI Patch()
     SearchReplacePattern(dllBase, "OGEL", "\x0GEL", 4, TRUE);
   }
 
+  // Patch navigation
+  {
+    const int nav_block_sz = 0x30;
+    const char *nav_block_src = "\x28\x00\x00\x00\x6F\x12\x83\x3A\x00\x00\x20\x42\x00\x00\xA0\x41\x00\x00\x70\x41\x00\x00\xF0\x41\x00\x00\x80\x40\x00\x00\x70\x41\x00\x00\x48\x42\x00\x00\x48\x42\xCD\xCC\xCC\x3E\x00\x00\x00\x00";
+    char nav_block_dst[nav_block_sz];
+    memcpy(nav_block_dst, nav_block_src, nav_block_sz);
 
+    UINT32 mouse_deadzone = config.GetInt(_T("MouseDeadzone"), 40);
+    memcpy(nav_block_dst+0x0, &mouse_deadzone, sizeof(mouse_deadzone));
 
+    float movement_max_spd = config.GetFloat(_T("MovementMaxSpeed"), 40.0f);
+    memcpy(nav_block_dst+0x8, &movement_max_spd, sizeof(movement_max_spd));
 
+    float turn_max_spd = config.GetFloat(_T("TurnMaxSpeed"), 20.0f);
+    memcpy(nav_block_dst+0xC, &turn_max_spd, sizeof(turn_max_spd));
+
+    float movement_max_accel = config.GetFloat(_T("MovementMaxAcceleration"), 15.0f);
+    memcpy(nav_block_dst+0x10, &movement_max_accel, sizeof(movement_max_accel));
+
+    float turn_max_accel = config.GetFloat(_T("TurnMaxAcceleration"), 30.0f);
+    memcpy(nav_block_dst+0x14, &turn_max_accel, sizeof(turn_max_accel));
+
+    float movement_min_accel = config.GetFloat(_T("MovementMinAcceleration"), 4.0f);
+    memcpy(nav_block_dst+0x18, &movement_min_accel, sizeof(movement_min_accel));
+
+    float turn_min_accel = config.GetFloat(_T("TurnMinAcceleration"), 15.0f);
+    memcpy(nav_block_dst+0x1C, &turn_min_accel, sizeof(turn_min_accel));
+
+    float movement_decel = config.GetFloat(_T("MovementDeceleration"), 50.0f);
+    memcpy(nav_block_dst+0x20, &movement_decel, sizeof(movement_decel));
+
+    float turn_decel = config.GetFloat(_T("TurnDeceleration"), 50.0f);
+    memcpy(nav_block_dst+0x24, &turn_decel, sizeof(turn_decel));
+
+    UINT32 turn_use_velocity = config.GetInt(_T("TurnUseVelocity"), FALSE);
+    memcpy(nav_block_dst+0x2C, &turn_use_velocity, sizeof(turn_use_velocity));
+
+    SearchReplacePattern(dllBase, nav_block_src, nav_block_dst, nav_block_sz);
+  }
 
   // DDRAW GetSurfaceDesc Override
   OverwriteCall((LPVOID) ((UINT_PTR)dllBase+0xBA7D5), (LPVOID)InterceptSurfaceGetDesc);

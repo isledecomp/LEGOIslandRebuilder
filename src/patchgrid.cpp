@@ -155,12 +155,12 @@ BOOL PatchGrid::SaveConfiguration(LPCTSTR filename)
     case IT_TEXT:
     case IT_FILE:
     case IT_FOLDER:
+    case IT_COMBO:
       value = item->m_strValue;
       break;
     case IT_BOOLEAN:
       value = toString(item->m_bValue);
       break;
-    case IT_COMBO:
     case IT_INTEGER:
       value = toString(item->m_nValue);
       break;
