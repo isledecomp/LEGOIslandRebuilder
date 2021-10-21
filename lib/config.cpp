@@ -44,7 +44,9 @@ std::string Config::GetString(LPCTSTR name, const std::string &defaultValue)
   std::string s;
   s.resize(max_string_sz);
 
-  GetPrivateProfileString(appName, name, defaultValue.c_str(), &s[0], max_string_sz, m_configFile.c_str());
+  DWORD count = GetPrivateProfileString(appName, name, defaultValue.c_str(), &s[0], max_string_sz, m_configFile.c_str());
+
+  s.resize(count);
 
   return s;
 }
