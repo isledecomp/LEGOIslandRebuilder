@@ -183,29 +183,21 @@ LONG WINAPI InterceptRegQueryValueExA(HKEY hKey, LPCSTR lpValueName, LPDWORD lpR
   return RegQueryValueExA(hKey, lpValueName, lpReserved, lpType, lpData, lpcbData);
 }
 
-BOOL StringEquals(const std::string &a, const char *b)
-{
-  return !(strcmp(a.c_str(), b));
-}
-
 void WINAPI InterceptSleep(DWORD dwMilliseconds)
 {
   // Do nothing
   std::string fps_behavior = config.GetString(_T("FPSLimit"));
 
   // If uncapped, do nothing
-  if (!StringEquals(fps_behavior, "Uncapped")) {
+  if (fps_behavior != "Uncapped") {
     // If not default, pass through new FPS
-    if (StringEquals(fps_behavior, "Limited")) {
+    if (fps_behavior == "Limited") {
       dwMilliseconds = 1000.0f / config.GetFloat(_T("CustomFPS"));
     }
 
     Sleep(dwMilliseconds);
   }
 }
-
-/*typedef D3DVALUE (WINAPI *d3drmViewportGetFieldFunction)(LPDIRECT3DRMVIEWPORT viewport);
-d3drmViewportGetFieldFunction d3drmViewportGetFieldOriginal = NULL;*/
 
 LPDIRECT3DRMVIEWPORT last_viewport = NULL;
 D3DVALUE last_fov = 0.0f;
@@ -226,10 +218,6 @@ HRESULT WINAPI InterceptD3DRMCreateViewport(LPDIRECT3DRM d3drm, LPDIRECT3DRMDEVI
   HRESULT res = d3drmCreateViewportOriginal(d3drm, device, frame, x, y, w, h, viewport);
 
   if (res == DD_OK) {
-    /*if (!d3drmViewportGetFieldOriginal) {
-      d3drmViewportGetFieldOriginal = (d3drmViewportGetFieldFunction)OverwriteVirtualTable(*viewport, 0x22, NULL);
-    }*/
-
     if (!d3drmViewportSetFieldOriginal) {
       d3drmViewportSetFieldOriginal = (d3drmViewportSetFieldFunction)OverwriteVirtualTable(*viewport, 0x10, (LPVOID)InterceptD3DRMViewportSetField);
     }
@@ -264,17 +252,16 @@ WNDPROC originalWndProc = NULL;
 LRESULT CALLBACK InterceptWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
   if (uMsg == WM_MOUSEWHEEL) {
-    short distance = HIWORD(wParam);
+    SHORT distance = HIWORD(wParam);
     distance /= WHEEL_DELTA;
 
     float multiplier = 0.005 * distance;
 
     InterceptD3DRMViewportSetField(last_viewport, last_fov + multiplier);
-  } else if (uMsg == WM_KEYDOWN) {
-    if (wParam == 'M') {
-      MessageBoxA(0, "would be cool to trigger any animation from here", 0, 0);
-    }
+
+    return 0;
   }
+
   return originalWndProc(hwnd, uMsg, wParam, lParam);
 }
 
@@ -285,4 +272,115 @@ ATOM WINAPI InterceptRegisterClassA(const WNDCLASSA *c)
   copy.lpfnWndProc = InterceptWindowProc;
 
   return RegisterClassA(&copy);
+}
+
+typedef HRESULT (WINAPI *dsCreateSoundBufferFunction)(LPDIRECTSOUND lpDS, LPCDSBUFFERDESC desc, LPDIRECTSOUNDBUFFER *buffer, LPUNKNOWN unk);
+dsCreateSoundBufferFunction dsCreateSoundBufferOriginal = NULL;
+HRESULT WINAPI InterceptDirectSoundCreateSoundBuffer(LPDIRECTSOUND lpDS, LPCDSBUFFERDESC desc, LPDIRECTSOUNDBUFFER *buffer, LPUNKNOWN unk)
+{
+  DSBUFFERDESC copy = *desc;
+
+  if (config.GetInt(_T("StayActiveWhenDefocused")) && !(copy.dwFlags & DSBCAPS_PRIMARYBUFFER)) {
+    copy.dwFlags |= DSBCAPS_GLOBALFOCUS;
+  }
+
+  return dsCreateSoundBufferOriginal(lpDS, &copy, buffer, unk);
+}
+
+dsCreateFunction dsCreateOriginal = NULL;
+HRESULT WINAPI InterceptDirectSoundCreate(LPGUID lpGuid, LPDIRECTSOUND* ppDS, LPUNKNOWN  pUnkOuter )
+{
+  HRESULT res = dsCreateOriginal(lpGuid, ppDS, pUnkOuter);
+
+  if (res == DD_OK) {
+    if (!dsCreateSoundBufferOriginal) {
+      dsCreateSoundBufferOriginal = (dsCreateSoundBufferFunction)OverwriteVirtualTable(*ppDS, 0x3, (LPVOID)InterceptDirectSoundCreateSoundBuffer);
+    }
+  }
+
+  return res;
+}
+
+SHORT WINAPI InterceptGetAsyncKeyState(int vKey)
+{
+  if (config.GetInt("UseWASD")) {
+    switch (vKey) {
+    case VK_UP:
+      vKey = 'W';
+      break;
+    case VK_LEFT:
+      vKey = 'A';
+      break;
+    case VK_DOWN:
+      vKey = 'S';
+      break;
+    case VK_RIGHT:
+      vKey = 'D';
+      break;
+    case 'W':
+      vKey = VK_UP;
+      break;
+    case 'A':
+      vKey = VK_LEFT;
+      break;
+    case 'S':
+      vKey = VK_DOWN;
+      break;
+    case 'D':
+      vKey = VK_RIGHT;
+      break;
+    }
+  }
+
+  return GetAsyncKeyState(vKey);
+}
+
+typedef HRESULT (WINAPI *dinputGetDeviceStateFunction)(LPDIRECTINPUTDEVICEA lpDevice, DWORD cbData, LPVOID lpvData);
+dinputGetDeviceStateFunction dinputGetDeviceStateOriginal = NULL;
+HRESULT WINAPI InterceptDirectInputGetDeviceStateA(LPDIRECTINPUTDEVICEA lpDevice, DWORD cbData, LPVOID lpvData)
+{
+  HRESULT res = dinputGetDeviceStateOriginal(lpDevice, cbData, lpvData);
+
+  if (config.GetInt("UseWASD") && res == DD_OK) {
+    if (cbData == 256) {
+      unsigned char *keys = (unsigned char *)lpvData;
+
+      // Swap state of WASD with arrow keys
+      std::swap(keys[DIK_W], keys[DIK_UP]);
+      std::swap(keys[DIK_A], keys[DIK_LEFT]);
+      std::swap(keys[DIK_S], keys[DIK_DOWN]);
+      std::swap(keys[DIK_D], keys[DIK_RIGHT]);
+    }
+  }
+
+  return res;
+}
+
+typedef HRESULT (WINAPI *dinputCreateDeviceFunction)(LPDIRECTINPUTA lpDI, REFGUID, LPDIRECTINPUTDEVICEA *, LPUNKNOWN);
+dinputCreateDeviceFunction dinputCreateDeviceOriginal = NULL;
+HRESULT WINAPI InterceptDirectInputCreateDeviceA(LPDIRECTINPUTA lpDI, REFGUID guid, LPDIRECTINPUTDEVICEA *ppDevice, LPUNKNOWN unk)
+{
+  HRESULT res = dinputCreateDeviceOriginal(lpDI, guid, ppDevice, unk);
+
+  if (res == DD_OK) {
+    if (!dinputGetDeviceStateOriginal) {
+      dinputGetDeviceStateOriginal = (dinputGetDeviceStateFunction)OverwriteVirtualTable(*ppDevice, 0x9, (LPVOID)InterceptDirectInputGetDeviceStateA);
+    }
+  }
+
+  return res;
+}
+
+dinputCreateFunction dinputCreateOriginal = NULL;
+HRESULT WINAPI InterceptDirectInputCreateA(HINSTANCE hinst, DWORD dwVersion, LPDIRECTINPUTA *ppDI, LPUNKNOWN punkOuter)
+{
+  HRESULT res = dinputCreateOriginal(hinst, dwVersion, ppDI, punkOuter);
+
+  if (res == DD_OK) {
+    if (!dinputCreateDeviceOriginal) {
+      dinputCreateDeviceOriginal = (dinputCreateDeviceFunction)OverwriteVirtualTable(*ppDI, 0x3, (LPVOID)InterceptDirectInputCreateDeviceA);
+    }
+  }
+
+  return res;
 }

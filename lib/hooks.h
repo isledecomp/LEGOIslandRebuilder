@@ -3,6 +3,8 @@
 
 #include <D3DRM.H>
 #include <DDRAW.H>
+#include <DINPUT.H>
+#include <DSOUND.H>
 #include <WINDOWS.H>
 
 void InterceptOutputDebugStringA(LPCSTR s);
@@ -50,5 +52,15 @@ VOID WINAPI InterceptSleep(DWORD dwMilliseconds);
 typedef HRESULT (WINAPI *d3drmCreateFunction)(LPDIRECT3DRM FAR *lplpDirect3DRM);
 extern d3drmCreateFunction d3drmCreateOriginal;
 HRESULT WINAPI InterceptDirect3DRMCreate(LPDIRECT3DRM FAR *lplpDirect3DRM);
+
+typedef HRESULT (WINAPI *dsCreateFunction)(LPGUID lpGuid, LPDIRECTSOUND* ppDS, LPUNKNOWN  pUnkOuter );
+extern dsCreateFunction dsCreateOriginal;
+HRESULT WINAPI InterceptDirectSoundCreate(LPGUID lpGuid, LPDIRECTSOUND* ppDS, LPUNKNOWN  pUnkOuter );
+
+SHORT WINAPI InterceptGetAsyncKeyState(int vKey);
+
+typedef HRESULT (WINAPI *dinputCreateFunction)(HINSTANCE hinst, DWORD dwVersion, LPDIRECTINPUTA *ppDI, LPUNKNOWN punkOuter);
+extern dinputCreateFunction dinputCreateOriginal;
+HRESULT WINAPI InterceptDirectInputCreateA(HINSTANCE hinst, DWORD dwVersion, LPDIRECTINPUTA *ppDI, LPUNKNOWN punkOuter);
 
 #endif // HOOKS_H

@@ -25,23 +25,20 @@ DWORD WINAPI Patch()
   OverwriteImport(exeBase, "RegisterClassA", (LPVOID)InterceptRegisterClassA);
   OverwriteImport(dllBase, "Sleep", (LPVOID)InterceptSleep);
   OverwriteImport(exeBase, "Sleep", (LPVOID)InterceptSleep);
+  OverwriteImport(dllBase, "GetAsyncKeyState", (LPVOID)InterceptGetAsyncKeyState);
   ddCreateOriginal = (ddCreateFunction)OverwriteImport(dllBase, "DirectDrawCreate", (LPVOID)InterceptDirectDrawCreate);
   d3drmCreateOriginal = (d3drmCreateFunction)OverwriteImport(dllBase, "Direct3DRMCreate", (LPVOID)InterceptDirect3DRMCreate);
+  dsCreateOriginal = (dsCreateFunction)OverwriteImport(dllBase, "DirectSoundCreate", (LPVOID)InterceptDirectSoundCreate);
+  dinputCreateOriginal = (dinputCreateFunction)OverwriteImport(dllBase, "DirectInputCreateA", (LPVOID)InterceptDirectInputCreateA);
 
   // Stay active when defocused
   if (config.GetInt(_T("StayActiveWhenDefocused"))) {
-    // Patch jump if window isn't active
+    // Patch jump if window isn't active (TODO: Replace with C++ patch)
     SearchReplacePattern(exeBase, "\x89\x58\x70", "\x90\x90\x90", 3);
-
-    // Patch DirectSound flags so that sound doesn't mute when inactive
-    SearchReplacePattern(dllBase, "\xC7\x44\x24\x24\xE0\x00\x00\x00", "\xC7\x44\x24\x24\xE0\x80\x00\x00", 8);
-    SearchReplacePattern(dllBase, "\xC7\x44\x24\x24\xB0\x00\x00\x00", "\xC7\x44\x24\x24\xB0\x80\x00\x00", 8);
-    SearchReplacePattern(dllBase, "\xC7\x45\xCC\x11\x00\x00\x00", "\xC7\x45\xCC\x11\x80\x00\x00", 7);
-    SearchReplacePattern(dllBase, "\xC7\x45\xCC\xE0\x00\x00\x00", "\xC7\x45\xCC\xE0\x80\x00\x00", 7);
   }
 
   // Allow multiple instances
-  if (config.GetInt(_T("AllowMultipleInstances"))) {
+  if (config.GetInt(_T("MultipleInstances"))) {
     // Patch FindWindowA import to always tell ISLE that no other ISLE window exists
     OverwriteImport(exeBase, "FindWindowA", (LPVOID)InterceptFindWindowA);
   }
@@ -93,6 +90,24 @@ DWORD WINAPI Patch()
 
     SearchReplacePattern(dllBase, nav_block_src, nav_block_dst, nav_block_sz);
   }
+
+  // Model Quality
+  std::string model_quality = config.GetString("ModelQuality");
+  float mq_val = 3.6f;
+  if (model_quality == "Infinite") {
+    mq_val = 999999.0f;
+  } else if (model_quality == "High") {
+    mq_val = 5.0f;
+  } else if (model_quality == "Medium") {
+    mq_val = 3.6f;
+  } else if (model_quality == "Low") {
+    mq_val = 0.0f;
+  }
+  const char *mq_pattern = "\x00\x00\x80\x40\x66\x66\x66\x40";
+  char mq_replace[8];
+  memcpy(mq_replace, mq_pattern, 8);
+  memcpy(mq_replace+4, &mq_val, sizeof(mq_val));
+  SearchReplacePattern(dllBase, mq_pattern, mq_replace, 8);
 
   // Field of view
   const char *fov_pattern = "\x00\x00\x00\x3F\x17\x6C\xC1\x16\x6C\xC1\x76\x3F";
