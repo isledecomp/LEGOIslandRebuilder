@@ -123,8 +123,8 @@ PatchGrid::PatchGrid()
 
   AddPatch("FOVMultiplier",
            _T("Globally adjusts the field of view by a multiplier\n\n"
-              "0.1 = Default (smaller than 0.1 is more zoomed in, larger than 0.1 is more zoomed out"),
-           AddDoubleItem(sectionGraphics, _T("Field of View Adjustment"), 0.1));
+              "1.0 = Default (greater than 1.0 is zoomed in, less than 1.0 is zoomed out)"),
+           AddDoubleItem(sectionGraphics, _T("Field of View Adjustment"), 1.0));
 
   // Audio section
   HSECTION sectionMusic = AddSection(_T("Audio"));

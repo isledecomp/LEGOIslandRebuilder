@@ -22,9 +22,11 @@ DWORD WINAPI Patch()
   OverwriteImport(exeBase, "CreateWindowExA", (LPVOID)InterceptCreateWindowExA);
   OverwriteImport(dllBase, "OutputDebugStringA", (LPVOID)InterceptOutputDebugStringA);
   OverwriteImport(exeBase, "RegQueryValueExA", (LPVOID)InterceptRegQueryValueExA);
+  OverwriteImport(exeBase, "RegisterClassA", (LPVOID)InterceptRegisterClassA);
   OverwriteImport(dllBase, "Sleep", (LPVOID)InterceptSleep);
   OverwriteImport(exeBase, "Sleep", (LPVOID)InterceptSleep);
   ddCreateOriginal = (ddCreateFunction)OverwriteImport(dllBase, "DirectDrawCreate", (LPVOID)InterceptDirectDrawCreate);
+  d3drmCreateOriginal = (d3drmCreateFunction)OverwriteImport(dllBase, "Direct3DRMCreate", (LPVOID)InterceptDirect3DRMCreate);
 
   // Stay active when defocused
   if (config.GetInt(_T("StayActiveWhenDefocused"))) {
@@ -91,6 +93,16 @@ DWORD WINAPI Patch()
 
     SearchReplacePattern(dllBase, nav_block_src, nav_block_dst, nav_block_sz);
   }
+
+  // Field of view
+  const char *fov_pattern = "\x00\x00\x00\x3F\x17\x6C\xC1\x16\x6C\xC1\x76\x3F";
+  char fov_replace[12];
+  float fov;
+  memcpy(fov_replace, fov_pattern, 12);         // Make editable copy of pattern
+  memcpy(&fov, fov_replace, sizeof(fov));       // Get float from bytes
+  fov *= 1.0f/config.GetFloat(_T("FOVMultiplier"));  // Multiply FOV
+  memcpy(fov_replace, &fov, sizeof(fov));       // Store back into bytes
+  SearchReplacePattern(dllBase, fov_pattern, fov_replace, 12);
 
   // DDRAW GetSurfaceDesc Override
   OverwriteCall((LPVOID) ((UINT_PTR)dllBase+0xBA7D5), (LPVOID)InterceptSurfaceGetDesc);

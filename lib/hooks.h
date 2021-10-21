@@ -1,6 +1,7 @@
 #ifndef HOOKS_H
 #define HOOKS_H
 
+#include <D3DRM.H>
 #include <DDRAW.H>
 #include <WINDOWS.H>
 
@@ -21,6 +22,8 @@ HWND WINAPI InterceptCreateWindowExA(
   LPVOID         lpParam
 );
 
+
+
 LONG
 APIENTRY
 InterceptRegQueryValueExA (
@@ -32,6 +35,8 @@ InterceptRegQueryValueExA (
     LPDWORD lpcbData
 );
 
+ATOM WINAPI InterceptRegisterClassA(const WNDCLASSA *c);
+
 HWND WINAPI InterceptFindWindowA(LPCSTR lpClassName, LPCSTR lpWindowName);
 
 typedef HRESULT (WINAPI *ddCreateFunction)(GUID *lpGUID, LPDIRECTDRAW *lplpDD, IUnknown *pUnkOuterS);
@@ -41,5 +46,9 @@ HRESULT WINAPI InterceptDirectDrawCreate(GUID *lpGUID, LPDIRECTDRAW *lplpDD, IUn
 HRESULT WINAPI InterceptSurfaceGetDesc(LPDIRECTDRAWSURFACE lpDDSurface, LPDDSURFACEDESC lpDDSurfaceDesc);
 
 VOID WINAPI InterceptSleep(DWORD dwMilliseconds);
+
+typedef HRESULT (WINAPI *d3drmCreateFunction)(LPDIRECT3DRM FAR *lplpDirect3DRM);
+extern d3drmCreateFunction d3drmCreateOriginal;
+HRESULT WINAPI InterceptDirect3DRMCreate(LPDIRECT3DRM FAR *lplpDirect3DRM);
 
 #endif // HOOKS_H

@@ -54,7 +54,7 @@ HRESULT WINAPI InterceptSurfaceGetDesc(LPDIRECTDRAWSURFACE lpDDSurface, LPDDSURF
   HRESULT res = originalDDSurfaceGetDescFunction(lpDDSurface, lpDDSurfaceDesc);
 
   if (res == DD_OK) {
-    ForceDDSurfaceDescTo16(lpDDSurfaceDesc);
+    //ForceDDSurfaceDescTo16(lpDDSurfaceDesc);
   }
 
   return res;
@@ -145,7 +145,8 @@ LONG WINAPI InterceptRegQueryValueExA(HKEY hKey, LPCSTR lpValueName, LPDWORD lpR
 
   } else if (!strcmp(lpValueName, "Full Screen")) {
 
-    ReturnRegistryYESNOFromBool(lpData, config.GetInt(_T("FullScreen"), 1));
+    //ReturnRegistryYESNOFromBool(lpData, config.GetInt(_T("FullScreen"), 1));
+    ReturnRegistryYESNOFromBool(lpData, FALSE);
     return ERROR_SUCCESS;
 
   } else if (!strcmp(lpValueName, "Draw Cursor")) {
@@ -182,13 +183,106 @@ LONG WINAPI InterceptRegQueryValueExA(HKEY hKey, LPCSTR lpValueName, LPDWORD lpR
   return RegQueryValueExA(hKey, lpValueName, lpReserved, lpType, lpData, lpcbData);
 }
 
+BOOL StringEquals(const std::string &a, const char *b)
+{
+  return !(strcmp(a.c_str(), b));
+}
+
 void WINAPI InterceptSleep(DWORD dwMilliseconds)
 {
   // Do nothing
-  /*std::string fps_behavior = config.GetString(_T("FPSLimit"));
+  std::string fps_behavior = config.GetString(_T("FPSLimit"));
 
-  if (fps_behavior != "Uncapped") {
-    // Pass through to default function unless uncapped, in which case no sleep is done at all
+  // If uncapped, do nothing
+  if (!StringEquals(fps_behavior, "Uncapped")) {
+    // If not default, pass through new FPS
+    if (StringEquals(fps_behavior, "Limited")) {
+      dwMilliseconds = 1000.0f / config.GetFloat(_T("CustomFPS"));
+    }
+
     Sleep(dwMilliseconds);
-  }*/
+  }
+}
+
+/*typedef D3DVALUE (WINAPI *d3drmViewportGetFieldFunction)(LPDIRECT3DRMVIEWPORT viewport);
+d3drmViewportGetFieldFunction d3drmViewportGetFieldOriginal = NULL;*/
+
+LPDIRECT3DRMVIEWPORT last_viewport = NULL;
+D3DVALUE last_fov = 0.0f;
+typedef HRESULT (WINAPI *d3drmViewportSetFieldFunction)(LPDIRECT3DRMVIEWPORT viewport, D3DVALUE field);
+d3drmViewportSetFieldFunction d3drmViewportSetFieldOriginal = NULL;
+HRESULT WINAPI InterceptD3DRMViewportSetField(LPDIRECT3DRMVIEWPORT viewport, D3DVALUE field)
+{
+  last_viewport = viewport;
+  last_fov = field;
+
+  return d3drmViewportSetFieldOriginal(viewport, field);
+}
+
+typedef HRESULT (WINAPI *d3drmCreateViewportFunction)(LPDIRECT3DRM d3drm, LPDIRECT3DRMDEVICE device, LPDIRECT3DRMFRAME frame, DWORD x, DWORD y, DWORD w, DWORD h, LPDIRECT3DRMVIEWPORT *viewport);
+d3drmCreateViewportFunction d3drmCreateViewportOriginal = NULL;
+HRESULT WINAPI InterceptD3DRMCreateViewport(LPDIRECT3DRM d3drm, LPDIRECT3DRMDEVICE device, LPDIRECT3DRMFRAME frame, DWORD x, DWORD y, DWORD w, DWORD h, LPDIRECT3DRMVIEWPORT *viewport)
+{
+  HRESULT res = d3drmCreateViewportOriginal(d3drm, device, frame, x, y, w, h, viewport);
+
+  if (res == DD_OK) {
+    /*if (!d3drmViewportGetFieldOriginal) {
+      d3drmViewportGetFieldOriginal = (d3drmViewportGetFieldFunction)OverwriteVirtualTable(*viewport, 0x22, NULL);
+    }*/
+
+    if (!d3drmViewportSetFieldOriginal) {
+      d3drmViewportSetFieldOriginal = (d3drmViewportSetFieldFunction)OverwriteVirtualTable(*viewport, 0x10, (LPVOID)InterceptD3DRMViewportSetField);
+    }
+  }
+
+  return res;
+}
+
+d3drmCreateFunction d3drmCreateOriginal = NULL;
+HRESULT WINAPI InterceptDirect3DRMCreate(LPDIRECT3DRM FAR *lplpDirect3DRM)
+{
+  HRESULT result = d3drmCreateOriginal(lplpDirect3DRM);
+
+  if (result == DD_OK) {
+    if (!d3drmCreateViewportOriginal) {
+      d3drmCreateViewportOriginal = (d3drmCreateViewportFunction)OverwriteVirtualTable(*lplpDirect3DRM, 0x38, (LPVOID)InterceptD3DRMCreateViewport);
+    }
+  }
+
+  return result;
+}
+
+#ifndef WM_MOUSEWHEEL
+#define WM_MOUSEWHEEL                   0x020A
+#endif
+
+#ifndef WHEEL_DELTA
+#define WHEEL_DELTA 120
+#endif
+
+WNDPROC originalWndProc = NULL;
+LRESULT CALLBACK InterceptWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+  if (uMsg == WM_MOUSEWHEEL) {
+    short distance = HIWORD(wParam);
+    distance /= WHEEL_DELTA;
+
+    float multiplier = 0.005 * distance;
+
+    InterceptD3DRMViewportSetField(last_viewport, last_fov + multiplier);
+  } else if (uMsg == WM_KEYDOWN) {
+    if (wParam == 'M') {
+      MessageBoxA(0, "would be cool to trigger any animation from here", 0, 0);
+    }
+  }
+  return originalWndProc(hwnd, uMsg, wParam, lParam);
+}
+
+ATOM WINAPI InterceptRegisterClassA(const WNDCLASSA *c)
+{
+  WNDCLASSA copy = *c;
+  originalWndProc = copy.lpfnWndProc;
+  copy.lpfnWndProc = InterceptWindowProc;
+
+  return RegisterClassA(&copy);
 }
