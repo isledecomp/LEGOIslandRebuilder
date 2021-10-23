@@ -5,8 +5,6 @@ project(Rebuilder LANGUAGES CXX)
 set(CMAKE_MFC_FLAG 2)
 add_compile_definitions(_AFXDLL)
 
-option(BUILD_UNICODE "Build with Unicode support" ON)
-
 #
 # Build our code injected DLL
 #
@@ -50,12 +48,6 @@ add_executable(Rebuilder WIN32
   src/window.cpp
   src/window.h
 )
-
-if (BUILD_UNICODE)
-  target_compile_definitions(Rebuilder PRIVATE UNICODE _UNICODE)
-  target_compile_definitions(Rebld PRIVATE UNICODE _UNICODE)
-  target_link_options(Rebuilder PRIVATE /entry:wWinMainCRTStartup)
-endif()
 
 target_link_libraries(Rebuilder PRIVATE shlwapi.lib PropertyGrid)
 
