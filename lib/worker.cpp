@@ -51,6 +51,13 @@ DWORD WINAPI Patch()
     SearchReplacePattern(dllBase, "OGEL", "\x0GEL", 4, TRUE);
   }
 
+  // Disable auto-finish in build sections
+  if (config.GetInt(_T("DisableAutoFinishBuilding"))) {
+    const char *autofinish_pattern = "\x66\x39\x90\xBE\x00\x00\x00\x0F\x85\x86\x00\x00\x00";
+    const char *autofinish_replace = "\x66\x39\x90\xBE\x00\x00\x00\xE9\x87\x00\x00\x00\x90";
+    SearchReplacePattern(dllBase, autofinish_pattern, autofinish_replace, 13);
+  }
+
   // Patch navigation
   {
     const int nav_block_sz = 0x30;
