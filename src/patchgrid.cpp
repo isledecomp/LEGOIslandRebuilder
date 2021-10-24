@@ -1,5 +1,6 @@
 #include "patchgrid.h"
 
+#include <SHLWAPI.H>
 #include <SSTREAM>
 
 #include "../cmn/path.h"
@@ -142,6 +143,61 @@ std::string toString(const T &value)
   return oss.str();
 }
 
+void PatchGrid::LoadConfiguration(LPCTSTR filename)
+{
+  for (std::map<std::string, HITEM>::const_iterator it=m_mPatchItems.begin(); it!=m_mPatchItems.end(); it++) {
+    CItem *item = FindItem(it->second);
+
+    std::string value;
+    value.resize(1024);
+
+    char buf[1024];
+
+    DWORD sz = GetPrivateProfileString(appName, it->first.c_str(), NULL, &value[0], value.size(), filename);
+
+    // If this entry wasn't in the profile, skip it
+    if (!sz) {
+      continue;
+    }
+
+    value.resize(sz);
+
+    // Convert value to string
+    switch (item->m_type) {
+    case IT_STRING:
+    case IT_TEXT:
+    case IT_FILE:
+    case IT_FOLDER:
+    case IT_COMBO:
+      SetItemValue(it->second, value);
+      break;
+    case IT_BOOLEAN:
+      SetItemValue(it->second, (bool)StrToIntA(value.c_str()));
+      break;
+    case IT_INTEGER:
+      SetItemValue(it->second, StrToIntA(value.c_str()));
+      break;
+    case IT_DOUBLE:
+      SetItemValue(it->second, atof(value.c_str()));
+      break;
+    case IT_COLOR:
+      SetItemValue(it->second, (COLORREF) StrToIntA(value.c_str()));
+      break;
+    case IT_CUSTOM:
+    case IT_DATE:
+    case IT_DATETIME:
+    case IT_FONT:
+    {
+      // Report inability to serialize
+      TCHAR buf[200];
+      sprintf(buf, "Failed to serialize %s from string.", it->first.c_str());
+      MessageBox(buf);
+      break;
+    }
+    }
+  }
+}
+
 BOOL PatchGrid::SaveConfiguration(LPCTSTR filename)
 {
   for (std::map<std::string, HITEM>::const_iterator it=m_mPatchItems.begin(); it!=m_mPatchItems.end(); it++) {
@@ -156,19 +212,29 @@ BOOL PatchGrid::SaveConfiguration(LPCTSTR filename)
     case IT_FILE:
     case IT_FOLDER:
     case IT_COMBO:
-      value = item->m_strValue;
+      GetItemValue(it->second, value);
       break;
     case IT_BOOLEAN:
-      value = toString(item->m_bValue);
+    {
+      bool b;
+      GetItemValue(it->second, b);
+      value = toString(b);
       break;
+    }
     case IT_INTEGER:
-      value = toString(item->m_nValue);
+      int i;
+      GetItemValue(it->second, i);
+      value = toString(i);
       break;
     case IT_DOUBLE:
-      value = toString(item->m_dValue);
+      double d;
+      GetItemValue(it->second, d);
+      value = toString(d);
       break;
     case IT_COLOR:
-      value = toString(item->m_clrValue);
+      COLORREF c;
+      GetItemValue(it->second, c);
+      value = toString(c);
       break;
     case IT_CUSTOM:
     case IT_DATE:
@@ -183,7 +249,6 @@ BOOL PatchGrid::SaveConfiguration(LPCTSTR filename)
     }
     }
 
-    this->GetItemValue(it->second, value);
     if (!WritePrivateProfileString(appName, it->first.c_str(), value.c_str(), filename)) {
       return FALSE;
     }

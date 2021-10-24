@@ -9,6 +9,7 @@ class PatchGrid : public CPropertyGrid
 public:
   PatchGrid();
 
+  void LoadConfiguration(LPCTSTR filename);
   BOOL SaveConfiguration(LPCTSTR filename);
 
 private:

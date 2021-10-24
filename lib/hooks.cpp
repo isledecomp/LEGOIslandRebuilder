@@ -145,8 +145,7 @@ LONG WINAPI InterceptRegQueryValueExA(HKEY hKey, LPCSTR lpValueName, LPDWORD lpR
 
   } else if (!strcmp(lpValueName, "Full Screen")) {
 
-    //ReturnRegistryYESNOFromBool(lpData, config.GetInt(_T("FullScreen"), 1));
-    ReturnRegistryYESNOFromBool(lpData, FALSE);
+    ReturnRegistryYESNOFromBool(lpData, config.GetInt(_T("FullScreen"), 1));
     return ERROR_SUCCESS;
 
   } else if (!strcmp(lpValueName, "Draw Cursor")) {
