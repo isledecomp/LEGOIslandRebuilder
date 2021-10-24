@@ -53,9 +53,16 @@ DWORD WINAPI Patch()
 
   // Disable auto-finish in build sections
   if (config.GetInt(_T("DisableAutoFinishBuilding"))) {
-    const char *autofinish_pattern = "\x66\x39\x90\xBE\x00\x00\x00\x0F\x85\x86\x00\x00\x00";
-    const char *autofinish_replace = "\x66\x39\x90\xBE\x00\x00\x00\xE9\x87\x00\x00\x00\x90";
-    SearchReplacePattern(dllBase, autofinish_pattern, autofinish_replace, 13);
+    // Pattern used in August build (jump is much shorter so it uses a different opcode)
+    const char *autofinish_pattern = "\x66\x39\x90\xBE\x00\x00\x00\x75";
+    const char *autofinish_replace = "\x66\x39\x90\xBE\x00\x00\x00\xEB";
+
+    if (SearchReplacePattern(dllBase, autofinish_pattern, autofinish_replace, 8) == 0) {
+      // Pattern used in September build (jump is much longer)
+      autofinish_pattern = "\x66\x39\x90\xBE\x00\x00\x00\x0F\x85\x86\x00\x00\x00";
+      autofinish_replace = "\x66\x39\x90\xBE\x00\x00\x00\xE9\x87\x00\x00\x00\x90";
+      SearchReplacePattern(dllBase, autofinish_pattern, autofinish_replace, 13);
+    }
   }
 
   // Patch navigation
@@ -125,9 +132,6 @@ DWORD WINAPI Patch()
   fov *= 1.0f/config.GetFloat(_T("FOVMultiplier"));  // Multiply FOV
   memcpy(fov_replace, &fov, sizeof(fov));       // Store back into bytes
   SearchReplacePattern(dllBase, fov_pattern, fov_replace, 12);
-
-  // DDRAW GetSurfaceDesc Override
-  OverwriteCall((LPVOID) ((UINT_PTR)dllBase+0xBA7D5), (LPVOID)InterceptSurfaceGetDesc);
 
   // Window size hack
   /*SearchReplacePattern(exeBase,
