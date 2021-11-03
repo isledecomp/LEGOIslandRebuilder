@@ -78,6 +78,16 @@ CRebuilderWindow::CRebuilderWindow()
   RECT patchGridClientRect;
   m_cPatchGrid.GetClientRect(&patchGridClientRect);
   m_cPatchGrid.SetGutterWidth((patchGridClientRect.right - patchGridClientRect.left) / 2);
+
+  TCHAR configPath[MAX_PATH];
+  if (GetConfigFilename(configPath)) {
+    m_cPatchGrid.LoadConfiguration(configPath);
+  }
+}
+
+CRebuilderWindow::~CRebuilderWindow()
+{
+  TrySaving();
 }
 
 DWORD WINAPI WaitForProcessToClose(HANDLE hProcess)
@@ -88,25 +98,34 @@ DWORD WINAPI WaitForProcessToClose(HANDLE hProcess)
   return 0;
 }
 
-void CRebuilderWindow::OnRunClick()
+BOOL CRebuilderWindow::TrySaving()
 {
   TCHAR configPath[MAX_PATH];
 
   if (GetConfigFilename(configPath)) {
     if (m_cPatchGrid.SaveConfiguration(configPath)) {
-      if (HANDLE proc = Launcher::Launch(this->GetSafeHwnd())) {
-        m_lProcesses.push_back(proc);
-        SwitchButtonMode(TRUE);
-
-        // Register callback when process exits
-        DWORD threadId; // We don't use this, but Windows 95 will fail without it
-        CloseHandle(CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)WaitForProcessToClose, proc, 0, &threadId));
-      }
+      return TRUE;
     } else {
       MessageBox(_T("Failed to save configuration file."));
     }
   } else {
     MessageBox(_T("Failed to determine configuration path."));
+  }
+
+  return FALSE;
+}
+
+void CRebuilderWindow::OnRunClick()
+{
+  if (TrySaving()) {
+    if (HANDLE proc = Launcher::Launch(this->GetSafeHwnd())) {
+      m_lProcesses.push_back(proc);
+      SwitchButtonMode(TRUE);
+
+      // Register callback when process exits
+      DWORD threadId; // We don't use this, but Windows 95 will fail without it
+      CloseHandle(CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)WaitForProcessToClose, proc, 0, &threadId));
+    }
   }
 }
 

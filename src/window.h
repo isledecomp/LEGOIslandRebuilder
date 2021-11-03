@@ -13,6 +13,8 @@ class CRebuilderWindow : public CFrameWnd
 public:
   CRebuilderWindow();
 
+  ~CRebuilderWindow();
+
   afx_msg void OnRunClick();
 
   afx_msg void OnKillClick();
@@ -33,6 +35,8 @@ private:
   void SetGUIFonts();
 
   void SwitchButtonMode(BOOL running);
+
+  BOOL TrySaving();
 
   enum {
     ID_RUN = 1000,

@@ -14,6 +14,10 @@ public:
 
   UINT GetInt(LPCTSTR name, UINT defaultValue = 0);
 
+  float GetFloat(LPCTSTR name, float defaultValue = 0.0f);
+
+  std::string GetString(LPCTSTR name, const std::string &defaultValue = std::string());
+
 private:
   std::basic_string<TCHAR> m_configFile;
 

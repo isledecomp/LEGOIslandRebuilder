@@ -95,8 +95,9 @@ LPVOID OverwriteImport(LPVOID imageBase, LPCSTR overrideFunction, LPVOID overrid
         PIMAGE_IMPORT_BY_NAME functionName = (PIMAGE_IMPORT_BY_NAME)((UINT_PTR)imageBase + (UINT_PTR)originalFirstThunk->u1.AddressOfData);
 
         if (!strcmp((const char*)functionName->Name, overrideFunction)) {
-          LPVOID originalFunction = (LPVOID)firstThunk->u1.Function;
-          firstThunk->u1.Function = (PDWORD)override;
+          // Write to memory
+          LPVOID originalFunction;
+          WriteMemory(&firstThunk->u1.Function, &override, sizeof(LPVOID), &originalFunction);
 
           // Return original function and end loop here
           printf("Hooked %s\n", overrideFunction);
@@ -117,12 +118,9 @@ LPVOID OverwriteVirtualTable(LPVOID object, SIZE_T methodIndex, LPVOID overrideF
 {
   LPVOID *vtable = ((LPVOID**)(object))[0];
   LPVOID &functionAddress = vtable[methodIndex];
-  LPVOID originalFunction = functionAddress;
+  LPVOID originalFunction = NULL;
 
-  if (overrideFunction) {
-    functionAddress = overrideFunction;
-    printf("Hooked vtable %p+%lu\n", vtable, methodIndex);
-  }
+  WriteMemory(&functionAddress, overrideFunction ? &overrideFunction : NULL, sizeof(LPVOID), &originalFunction);
 
   return originalFunction;
 }
