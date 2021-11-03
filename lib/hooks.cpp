@@ -17,6 +17,12 @@ void InterceptOutputDebugStringA(LPCSTR s)
 
 HWND WINAPI InterceptCreateWindowExA(DWORD dwExStyle, LPCSTR lpClassName, LPCSTR lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam)
 {
+  // If full screen, hide the titlebar
+  if (config.GetInt(_T("FullScreen"))) {
+    dwStyle = WS_POPUP;
+    dwExStyle = 0;
+  }
+
   // Grab a copy of the ISLE window so we can do stuff with it
   isleWindow = CreateWindowExA(dwExStyle, lpClassName, "LEGO Island: Rebuilt", dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
   return isleWindow;
