@@ -5,6 +5,8 @@
 
 #include "../res/resource.h"
 
+typedef LPVOID (WINAPI *VirtualAllocEx_t)(HANDLE hProcess, LPVOID lpAddress, DWORD dwSize, DWORD flAllocationType, DWORD flProtect);
+
 HANDLE Launcher::Launch(HWND parent)
 {
   // Find the installation
@@ -14,23 +16,10 @@ HANDLE Launcher::Launch(HWND parent)
     return NULL;
   }
 
-  // If we found it, make a copy to temp
-  TCHAR copiedFile[MAX_PATH];
-  TCHAR libraryFile[MAX_PATH];
-  if (!CopyIsleToTemp(filename, copiedFile)) {
-    MessageBox(parent, _T("Failed to copy to temp"), NULL, 0);
-    return NULL;
-  }
-
   // Extract REBLD.DLL which contains our patches
+  TCHAR libraryFile[MAX_PATH];
   if (!ExtractLibrary(libraryFile, MAX_PATH)) {
     MessageBox(parent, _T("Failed to extract to temp"), NULL, 0);
-    return NULL;
-  }
-
-  // Patch our copied ISLE to import our DLL
-  if (!PatchIsle(copiedFile)) {
-    MessageBox(parent, _T("Failed to patch import"), NULL, 0);
     return NULL;
   }
 
@@ -41,16 +30,59 @@ HANDLE Launcher::Launch(HWND parent)
 
   // Start launching our copy
   PROCESS_INFORMATION pi;
-  STARTUPINFO si;
-
-  ZeroMemory(&pi, sizeof(pi));
-  ZeroMemory(&si, sizeof(si));
-
-  if (!CreateProcess(NULL, copiedFile, NULL, NULL, FALSE, 0, NULL, srcDir, &si, &pi)) {
-    TCHAR err[2048];
-    _stprintf(err, _T("Failed to create process with error 0x%lx"), GetLastError());
-    MessageBox(parent, err, NULL, 0);
+  if (!TryCreateProcess(parent, filename, srcDir, TRUE, &pi)) {
     return NULL;
+  }
+
+  int dllPathLength = strlen(libraryFile) + 1;
+
+  LPVOID remoteDllAddress = NULL;
+  if (VirtualAllocEx_t virtualAllocEx = (VirtualAllocEx_t)GetProcAddress(GetModuleHandle(TEXT("KERNEL32.DLL")), TEXT("VirtualAllocEx"))) {
+    remoteDllAddress = virtualAllocEx(pi.hProcess, NULL, dllPathLength, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+  }
+
+  if (remoteDllAddress) {
+    // For Windows NT, we can use the standard VirtualAllocEx/WriteProcessMemory/CreateRemoteThread
+    // injection system.
+    if (!WriteProcessMemory(pi.hProcess, remoteDllAddress, (LPVOID)libraryFile, dllPathLength, NULL)) {
+      MessageBox(parent, TEXT("Failed to write memory in remote process"), NULL, 0);
+      TerminateProcess(pi.hProcess, 0);
+      return NULL;
+    }
+
+    DWORD thread_id;
+    HANDLE remote_thread = CreateRemoteThread(pi.hProcess, NULL, NULL, (LPTHREAD_START_ROUTINE) LoadLibrary, remoteDllAddress, NULL, &thread_id);
+    if (!remote_thread) {
+      char buf[100];
+      sprintf(buf, "Failed to create remote thread: 0x%lx", GetLastError());
+      MessageBox(parent, buf, NULL, 0);
+      TerminateProcess(pi.hProcess, 0);
+      return NULL;
+    }
+
+    WaitForSingleObject(remote_thread, INFINITE);
+    CloseHandle(remote_thread);
+    ResumeThread(pi.hThread);
+  } else {
+    // For Windows 9x, we wrap WINMM.DLL because 9x doesn't support VirtualAllocEx or CreateRemoteThread.
+    TerminateProcess(pi.hProcess, 0);
+
+    // Copy ISLE to temp
+    TCHAR copiedFile[MAX_PATH];
+    if (!CopyIsleToTemp(filename, copiedFile)) {
+      MessageBox(parent, _T("Failed to copy to temp"), NULL, 0);
+      return NULL;
+    }
+
+    // Patch our copied ISLE to import our DLL
+    if (!PatchIsle(copiedFile)) {
+      MessageBox(parent, _T("Failed to patch import"), NULL, 0);
+      return NULL;
+    }
+
+    if (!TryCreateProcess(parent, copiedFile, srcDir, FALSE, &pi)) {
+      return NULL;
+    }
   }
 
   return pi.hProcess;
@@ -212,4 +244,21 @@ BOOL Launcher::ReplacePatternInFile(HANDLE file, const char *pattern, const char
   delete [] data;
 
   return success;
+}
+
+BOOL Launcher::TryCreateProcess(HWND parent, LPSTR filename, LPCSTR working_dir, BOOL suspended, PROCESS_INFORMATION *pi)
+{
+  STARTUPINFO si;
+
+  ZeroMemory(pi, sizeof(PROCESS_INFORMATION));
+  ZeroMemory(&si, sizeof(si));
+
+  if (!CreateProcess(NULL, filename, NULL, NULL, FALSE, suspended ? CREATE_SUSPENDED : 0, NULL, working_dir, &si, pi)) {
+    TCHAR err[2048];
+    _stprintf(err, _T("Failed to create process with error 0x%lx"), GetLastError());
+    MessageBox(parent, err, NULL, 0);
+    return FALSE;
+  }
+
+  return TRUE;
 }
