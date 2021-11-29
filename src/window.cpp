@@ -57,7 +57,8 @@ CRebuilderWindow::CRebuilderWindow()
   // Create property grid
   m_cPatchGrid.Create(AfxRegisterWndClass(CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW), _T("Patch Grid"), WS_CHILD | WS_VISIBLE, CRect(), &m_cTabCtrl, ID_PATCHGRID);
 
-  m_cMusicTable.Create(_T("Coming back soon"), WS_CHILD | SS_CENTER, CRect(), &m_cTabCtrl);
+  m_cMusicTable.Create(_T("Coming back soon. If you need music replacement, download the old .NET version here."),
+                       WS_CHILD | SS_CENTER, CRect(), &m_cTabCtrl);
 
   // Create run button
   m_cRunBtn.Create(GetResourceString(IDS_RUN), WS_CHILD | WS_VISIBLE, CRect(), this, ID_RUN);

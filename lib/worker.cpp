@@ -43,6 +43,15 @@ DWORD WINAPI Patch()
     OverwriteImport(exeBase, "FindWindowA", (LPVOID)InterceptFindWindowA);
   }
 
+  // Speed up startup
+  if (config.GetInt(_T("SpeedUpStartUp"))) {
+    // Replace "200" frame wait value with "1"
+    const char *speedup_pattern = "\xC8\x00\x00\x00\x00\x00\x00\x00";
+    const char *speedup_replace = "\x01\x00\x00\x00\x00\x00\x00\x00";
+
+    SearchReplacePattern(exeBase, speedup_pattern, speedup_replace, 8, TRUE);
+  }
+
   // Debug mode
   if (config.GetInt(_T("DebugToggle"))) {
     // LEGO1 uses a string pointer to know if OGEL has been typed, if the string pointer sees 0x0
@@ -65,6 +74,20 @@ DWORD WINAPI Patch()
     }
   }
 
+  // Unhook turn speed
+  float turn_max_spd = config.GetFloat(_T("TurnMaxSpeed"), 20.0f);
+
+  if (config.GetInt(_T("UnhookTurnSpeed"))) {
+    LPVOID code_offset = SearchPattern(dllBase, "\x74\x26\xD9\x46\x34", 5);
+    if (code_offset) {
+      const char *new_code = "\xD9\x46\x24\xD8\x4C\x24\x14\xD8\x4E\x34\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90";
+      WriteMemory(code_offset, (LPVOID)new_code, 36);
+      turn_max_spd *= 2.0f;
+    } else {
+      printf("Failed to find code for unhooking turn speed\n");
+    }
+  }
+
   // Patch navigation
   {
     const int nav_block_sz = 0x30;
@@ -78,7 +101,7 @@ DWORD WINAPI Patch()
     float movement_max_spd = config.GetFloat(_T("MovementMaxSpeed"), 40.0f);
     memcpy(nav_block_dst+0x8, &movement_max_spd, sizeof(movement_max_spd));
 
-    float turn_max_spd = config.GetFloat(_T("TurnMaxSpeed"), 20.0f);
+    // Value retrieved above
     memcpy(nav_block_dst+0xC, &turn_max_spd, sizeof(turn_max_spd));
 
     float movement_max_accel = config.GetFloat(_T("MovementMaxAcceleration"), 15.0f);
@@ -132,6 +155,20 @@ DWORD WINAPI Patch()
   fov *= 1.0f/config.GetFloat(_T("FOVMultiplier"));  // Multiply FOV
   memcpy(fov_replace, &fov, sizeof(fov));       // Store back into bytes
   SearchReplacePattern(dllBase, fov_pattern, fov_replace, 12);
+
+  // FPS Cap
+  std::string fps_behavior = config.GetString(_T("FPSLimit"));
+  if (fps_behavior != "Default") {
+    UINT32 frame_delta;
+
+    if (fps_behavior == "Limited") {
+      frame_delta = 1000.0f / config.GetFloat(_T("CustomFPS"));
+    } else {
+      frame_delta = 0;
+    }
+
+    WriteMemory((char*)exeBase+0x10B4, &frame_delta, sizeof(UINT32));
+  }
 
   // Window size hack
   /*SearchReplacePattern(exeBase,

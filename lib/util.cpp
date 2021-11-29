@@ -135,3 +135,46 @@ BOOL OverwriteCall(LPVOID destination, LPVOID localCall)
 
   return WriteMemory(destination, callInst, 5);
 }
+
+LPVOID SearchPattern(LPVOID imageBase, LPCVOID search, SIZE_T count)
+{
+  LPVOID ret = NULL;
+
+  HANDLE process = GetCurrentProcess();
+
+  MEMORY_BASIC_INFORMATION mbi = {0};
+
+  // Loop through memory pages
+  UINT_PTR addr = (UINT_PTR)imageBase;
+  while (VirtualQueryEx(process, (LPVOID)addr, &mbi, sizeof(mbi)) && mbi.AllocationBase == imageBase) {
+    if (mbi.State == MEM_COMMIT && mbi.Protect != PAGE_NOACCESS) {
+      DWORD oldProtec;
+
+      // Try to gain access to this memory page
+      if (VirtualProtect(mbi.BaseAddress, mbi.RegionSize, PAGE_EXECUTE_READWRITE, &oldProtec)) {
+        // Loop through every byte to find the pattern
+        SIZE_T maxOffset = mbi.RegionSize - count;
+        for (SIZE_T i=0; i<maxOffset; i++) {
+          LPVOID offset = (LPVOID)((UINT_PTR)(mbi.BaseAddress)+i);
+
+          if (!memcmp(offset, search, count)) {
+            // Found pattern, overwrite it
+            ret = offset;
+            break;
+          }
+        }
+
+        // Restore original permissions
+        VirtualProtect(mbi.BaseAddress, mbi.RegionSize, oldProtec, &oldProtec);
+      }
+    }
+
+    if (ret) {
+      break;
+    }
+
+    addr += mbi.RegionSize;
+  }
+
+  return ret;
+}

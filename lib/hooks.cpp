@@ -190,16 +190,8 @@ LONG WINAPI InterceptRegQueryValueExA(HKEY hKey, LPCSTR lpValueName, LPDWORD lpR
 
 void WINAPI InterceptSleep(DWORD dwMilliseconds)
 {
-  // Do nothing
-  std::string fps_behavior = config.GetString(_T("FPSLimit"));
-
-  // If uncapped, do nothing
-  if (fps_behavior != "Uncapped") {
-    // If not default, pass through new FPS
-    if (fps_behavior == "Limited") {
-      dwMilliseconds = 1000.0f / config.GetFloat(_T("CustomFPS"));
-    }
-
+  // If uncapped, do nothing. Otherwise pass through as normal.
+  if (config.GetString(_T("FPSLimit")) != "Uncapped") {
     Sleep(dwMilliseconds);
   }
 }
@@ -216,6 +208,37 @@ HRESULT WINAPI InterceptD3DRMViewportSetField(LPDIRECT3DRMVIEWPORT viewport, D3D
   return d3drmViewportSetFieldOriginal(viewport, field);
 }
 
+const SIZE_T max_frame_numbers = 60;
+SIZE_T current_frame = 0;
+DWORD frame_deltas[max_frame_numbers];
+DWORD last_time = 0;
+
+typedef HRESULT (WINAPI *d3drmDeviceUpdateFunction)(LPDIRECT3DRMDEVICE device);
+d3drmDeviceUpdateFunction d3drmDeviceUpdateOriginal = NULL;
+HRESULT WINAPI InterceptD3DRMDeviceUpdate(LPDIRECT3DRMDEVICE device)
+{
+  DWORD now = timeGetTime();
+
+  if (last_time != 0) {
+    DWORD diff = now - last_time;
+    frame_deltas[current_frame%max_frame_numbers] = diff;
+    current_frame++;
+
+    if (current_frame >= max_frame_numbers) {
+      double avg_delta = 0;
+      for (size_t i=0; i<max_frame_numbers; i++) {
+        avg_delta += frame_deltas[i];
+      }
+      avg_delta /= max_frame_numbers;
+      printf("Avg FPS: %f\n", 1000.0 / avg_delta);
+    }
+  }
+
+  last_time = now;
+
+  return d3drmDeviceUpdateOriginal(device);
+}
+
 typedef HRESULT (WINAPI *d3drmCreateViewportFunction)(LPDIRECT3DRM d3drm, LPDIRECT3DRMDEVICE device, LPDIRECT3DRMFRAME frame, DWORD x, DWORD y, DWORD w, DWORD h, LPDIRECT3DRMVIEWPORT *viewport);
 d3drmCreateViewportFunction d3drmCreateViewportOriginal = NULL;
 HRESULT WINAPI InterceptD3DRMCreateViewport(LPDIRECT3DRM d3drm, LPDIRECT3DRMDEVICE device, LPDIRECT3DRMFRAME frame, DWORD x, DWORD y, DWORD w, DWORD h, LPDIRECT3DRMVIEWPORT *viewport)
@@ -223,6 +246,10 @@ HRESULT WINAPI InterceptD3DRMCreateViewport(LPDIRECT3DRM d3drm, LPDIRECT3DRMDEVI
   HRESULT res = d3drmCreateViewportOriginal(d3drm, device, frame, x, y, w, h, viewport);
 
   if (res == DD_OK) {
+    if (!d3drmDeviceUpdateOriginal) {
+      d3drmDeviceUpdateOriginal = (d3drmDeviceUpdateFunction)OverwriteVirtualTable(device, 14, (LPVOID)InterceptD3DRMDeviceUpdate);
+    }
+
     if (!d3drmViewportSetFieldOriginal) {
       d3drmViewportSetFieldOriginal = (d3drmViewportSetFieldFunction)OverwriteVirtualTable(*viewport, 0x10, (LPVOID)InterceptD3DRMViewportSetField);
     }

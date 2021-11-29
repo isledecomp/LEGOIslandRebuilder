@@ -21,6 +21,11 @@ PatchGrid::PatchGrid()
               "This patch allows infinite instances of LEGO Island to run."),
            AddBoolItem(sectionGeneral, _T("Allow Multiple Instances"), false));
 
+  AddPatch("SpeedUpStartUp",
+           _T("By default, LEGO Island waits 200 frames to ensure everything is initialized before starting. "
+              "That interval can be skipped without consequence in many cases."),
+           AddBoolItem(sectionGeneral, _T("Speed Up Startup"), false));
+
   AddPatch("StayActiveWhenDefocused",
            _T("By default, LEGO Island pauses when it's not the active window. "
               "This patch prevents that behavior."),
