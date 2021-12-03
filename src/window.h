@@ -21,6 +21,8 @@ public:
 
   afx_msg void OnSubtitleClick();
 
+  afx_msg void OnMusicLinkClick();
+
   afx_msg void OnSize(UINT type, int width, int height);
 
   afx_msg void OnGetMinMaxInfo(MINMAXINFO *info);
@@ -44,6 +46,7 @@ private:
     ID_TABCTRL,
     ID_SUBTITLE,
     ID_PATCHGRID,
+    ID_MUSICLINK,
     ID_COUNT
   };
 
@@ -64,7 +67,7 @@ private:
 
   PatchGrid m_cPatchGrid;
 
-  CStatic m_cMusicTable;
+  CLinkStatic m_cMusicLink;
 
   std::vector<HANDLE> m_lProcesses;
 

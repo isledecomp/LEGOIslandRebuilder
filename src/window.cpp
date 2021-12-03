@@ -57,8 +57,8 @@ CRebuilderWindow::CRebuilderWindow()
   // Create property grid
   m_cPatchGrid.Create(AfxRegisterWndClass(CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW), _T("Patch Grid"), WS_CHILD | WS_VISIBLE, CRect(), &m_cTabCtrl, ID_PATCHGRID);
 
-  m_cMusicTable.Create(_T("Coming back soon. If you need music replacement, download the old .NET version here."),
-                       WS_CHILD | SS_CENTER, CRect(), &m_cTabCtrl);
+  m_cMusicLink.Create(_T("Coming back soon. If you need music replacement, download the old .NET version here."),
+                       WS_CHILD | SS_CENTER, CRect(), &m_cTabCtrl, ID_MUSICLINK);
 
   // Create run button
   m_cRunBtn.Create(GetResourceString(IDS_RUN), WS_CHILD | WS_VISIBLE, CRect(), this, ID_RUN);
@@ -145,6 +145,11 @@ void CRebuilderWindow::OnSubtitleClick()
   ShellExecute(NULL, _T("open"), _T("http://itsmattkc.com/"), NULL, NULL, SW_SHOWNORMAL);
 }
 
+void CRebuilderWindow::OnMusicLinkClick()
+{
+  ShellExecute(NULL, _T("open"), _T("http://github.com/itsmattkc/LEGOIslandRebuilder/releases"), NULL, NULL, SW_SHOWNORMAL);
+}
+
 void CRebuilderWindow::OnSize(UINT type, int width, int height)
 {
   const int padding = m_nFontHeight/2;
@@ -173,7 +178,7 @@ void CRebuilderWindow::OnSize(UINT type, int width, int height)
   m_cTabCtrl.GetClientRect(&tabClientRect);
   m_cTabCtrl.AdjustRect(FALSE, &tabClientRect);
   m_cPatchGrid.SetWindowPos(NULL, tabClientRect.left, tabClientRect.top, tabClientRect.right - tabClientRect.left, tabClientRect.bottom - tabClientRect.top, 0);
-  m_cMusicTable.SetWindowPos(NULL, tabClientRect.left, tabClientRect.top, tabClientRect.right - tabClientRect.left, tabClientRect.bottom - tabClientRect.top, 0);
+  m_cMusicLink.SetWindowPos(NULL, tabClientRect.left, tabClientRect.top, tabClientRect.right - tabClientRect.left, tabClientRect.bottom - tabClientRect.top, 0);
 }
 
 void CRebuilderWindow::OnGetMinMaxInfo(MINMAXINFO *info)
@@ -190,7 +195,7 @@ void CRebuilderWindow::OnTabSelChange(NMHDR *pNMHDR, LRESULT *pResult)
   int tab = m_cTabCtrl.GetCurSel();
 
   m_cPatchGrid.ShowWindow((tab == TAB_PATCHES) ? SW_SHOWNORMAL : SW_HIDE);
-  m_cMusicTable.ShowWindow((tab == TAB_MUSIC) ? SW_SHOWNORMAL : SW_HIDE);
+  m_cMusicLink.ShowWindow((tab == TAB_MUSIC) ? SW_SHOWNORMAL : SW_HIDE);
 }
 
 BOOL CRebuilderWindow::SetFont(HWND child, LPARAM font)
@@ -276,5 +281,6 @@ BEGIN_MESSAGE_MAP(CRebuilderWindow, super)
   ON_BN_CLICKED(ID_RUN, OnRunClick)
   ON_BN_CLICKED(ID_KILL, OnKillClick)
   ON_BN_CLICKED(ID_SUBTITLE, OnSubtitleClick)
+  ON_BN_CLICKED(ID_MUSICLINK, OnMusicLinkClick)
   ON_NOTIFY(TCN_SELCHANGE, ID_TABCTRL, OnTabSelChange)
 END_MESSAGE_MAP()
