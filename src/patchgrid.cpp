@@ -1,9 +1,43 @@
 #include "patchgrid.h"
 
+#include <D3DRM.H>
+#include <DDRAW.H>
 #include <SHLWAPI.H>
 #include <SSTREAM>
 
 #include "../cmn/path.h"
+
+HRESULT CALLBACK ReceiveD3DDevice(GUID *lpGuid, LPSTR szDeviceDescription, LPSTR szDeviceName, LPD3DDEVICEDESC pD3DDD1, LPD3DDEVICEDESC pD3DDD2, LPVOID lpContext)
+{
+  char buf[256];
+
+  // NOTE: Not really sure where the "0" comes from. I'm guessing it's the index of the ddraw
+  //       device, but I don't have any hardware that has a second one (I only have "Primary
+  //       Display Driver") so I can't experiment.
+  sprintf(buf, "0 0x%lx 0x%x%x 0x%lx 0x%lx", lpGuid->Data1, lpGuid->Data3, lpGuid->Data2,
+          *((DWORD*)&lpGuid->Data4), *((DWORD*)&lpGuid->Data4[4]));
+
+  PatchGrid *p = (PatchGrid*)lpContext;
+  p->AddD3DDevice(szDeviceName, buf);
+
+  return DDENUMRET_OK;
+}
+
+BOOL CALLBACK ReceiveDDrawDevice(GUID *lpGuid, LPSTR szDesc, LPSTR szName, LPVOID lpContext)
+{
+  LPDIRECTDRAW dd;
+  LPDIRECT3D2 d3d2;
+
+  DirectDrawCreate(lpGuid, &dd, NULL);
+
+  dd->QueryInterface(IID_IDirect3D2, (void**)&d3d2);
+  d3d2->EnumDevices(ReceiveD3DDevice, lpContext);
+
+  d3d2->Release();
+  dd->Release();
+
+  return DDENUMRET_OK;
+}
 
 PatchGrid::PatchGrid()
 {
@@ -97,6 +131,13 @@ PatchGrid::PatchGrid()
 
   // Graphics Section
   HSECTION sectionGraphics = AddSection(_T("Graphics"));
+
+  DirectDrawEnumerateA(ReceiveDDrawDevice, this);
+  m_d3dDeviceItem = AddComboItem(sectionGraphics, _T("Direct3D Device"), m_d3dDeviceNames, 0);
+
+  AddPatch("D3DDevice",
+           _T("Set which Direct3D device to use with LEGO Island."),
+           m_d3dDeviceItem);
 
   AddPatch("FullScreen",
            _T("Allows you to change modes without administrator privileges and registry editing. NOTE: Windowed mode is NOT compatible with \"Flip Video Memory Pages\"."),
@@ -257,9 +298,21 @@ BOOL PatchGrid::SaveConfiguration(LPCTSTR filename)
     if (!WritePrivateProfileString(appName, it->first.c_str(), value.c_str(), filename)) {
       return FALSE;
     }
+
+    if (it->second == m_d3dDeviceItem) {
+      int device_index;
+      GetItemValue(it->second, device_index);
+      WritePrivateProfileString(appName, "D3DDeviceID", m_d3dDeviceIDs.at(device_index).c_str(), filename);
+    }
   }
 
   return TRUE;
+}
+
+void PatchGrid::AddD3DDevice(const string &name, const string &id)
+{
+  m_d3dDeviceNames.push_back(name);
+  m_d3dDeviceIDs.push_back(id);
 }
 
 void PatchGrid::AddPatch(const string &id, const CString &description, HITEM item)

@@ -12,11 +12,18 @@ public:
   void LoadConfiguration(LPCTSTR filename);
   BOOL SaveConfiguration(LPCTSTR filename);
 
+  void AddD3DDevice(const std::string &name, const std::string &id);
+
 private:
   void AddPatch(const std::string &id, const CString &description, HITEM item);
 
   std::map<std::string, HITEM> m_mPatchItems;
   std::map<std::string, CString> m_mPatchDescriptions;
+
+  HITEM m_d3dDeviceItem;
+
+  std::vector<std::string> m_d3dDeviceNames;
+  std::vector<std::string> m_d3dDeviceIDs;
 
 };
 

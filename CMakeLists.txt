@@ -49,7 +49,7 @@ add_executable(Rebuilder WIN32
   src/window.h
 )
 
-target_link_libraries(Rebuilder PRIVATE shlwapi.lib PropertyGrid)
+target_link_libraries(Rebuilder PRIVATE shlwapi.lib ddraw.lib dxguid.lib PropertyGrid)
 
 # Ensure DLL is compiled before resource is built into executable
 set_source_files_properties(res/res.rc PROPERTIES OBJECT_DEPENDS Rebld)

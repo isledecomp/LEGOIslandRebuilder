@@ -159,6 +159,18 @@ LONG WINAPI InterceptRegQueryValueExA(HKEY hKey, LPCSTR lpValueName, LPDWORD lpR
     ReturnRegistryYESNOFromBool(lpData, config.GetInt(_T("DrawCursor"), 1));
     return ERROR_SUCCESS;
 
+  } else if (!strcmp(lpValueName, "3D Device ID")) {
+
+    std::string dev_id = config.GetString("D3DDeviceID");
+    strcpy((char*)lpData, dev_id.c_str());
+    return ERROR_SUCCESS;
+
+  } else if (!strcmp(lpValueName, "3D Device Name")) {
+
+    std::string dev_name = config.GetString("D3DDevice");
+    strcpy((char*)lpData, dev_name.c_str());
+    return ERROR_SUCCESS;
+
   } else if (!strcmp(lpValueName, "savepath")) {
 
     // If enabled, return a safe %APPDATA% based save location rather than its default
