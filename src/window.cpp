@@ -89,6 +89,7 @@ CRebuilderWindow::CRebuilderWindow()
 CRebuilderWindow::~CRebuilderWindow()
 {
   TrySaving();
+  OnKillClick();
 }
 
 DWORD WINAPI WaitForProcessToClose(HANDLE hProcess)

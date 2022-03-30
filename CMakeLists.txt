@@ -23,7 +23,7 @@ add_library(Rebld SHARED
   lib/worker.h
 )
 target_compile_options(Rebld PRIVATE /MT)
-target_link_libraries(Rebld PRIVATE winmm.lib shlwapi.lib)
+target_link_libraries(Rebld PRIVATE winmm.lib dxguid.lib shlwapi.lib)
 
 # Add property grid
 set(PROPERTYGRID_BUILD_APP OFF CACHE BOOL "")

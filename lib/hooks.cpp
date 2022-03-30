@@ -1,7 +1,9 @@
 #include "hooks.h"
 
+#include <MAP>
 #include <MATH.H>
 #include <STDIO.H>
+#include <VECTOR>
 
 #include "../cmn/path.h"
 #include "config.h"
@@ -79,12 +81,17 @@ HRESULT WINAPI InterceptSurfaceGetPixelFormatFunction(LPDIRECTDRAWSURFACE lpDDSu
   return res;
 }
 
+typedef HRESULT (WINAPI *ddBltFunction)(LPDIRECTDRAWSURFACE lpSurface, LPRECT lpRectDest, LPDIRECTDRAWSURFACE lpSource, LPRECT lpRectSrc, DWORD dwFlags, LPDDBLTFX lpDDBltFx);
+ddBltFunction originalBltFunction = NULL;
+HRESULT WINAPI InterceptDirectDrawSurfaceBlt(LPDIRECTDRAWSURFACE lpDest, LPRECT lpRectDest, LPDIRECTDRAWSURFACE lpSource, LPRECT lpRectSrc, DWORD dwFlags, LPDDBLTFX lpDDBltFx)
+{
+  return originalBltFunction(lpDest, lpRectDest, lpSource, lpRectSrc, dwFlags, lpDDBltFx);
+}
+
 typedef HRESULT (WINAPI *ddCreateSurfaceFunction)(LPDIRECTDRAW lpDD, LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTDRAWSURFACE *lplpDDSurface, IUnknown *unknown);
 ddCreateSurfaceFunction originalCreateSurfaceFunction = NULL;
 HRESULT WINAPI InterceptCreateSurface(LPDIRECTDRAW lpDD, LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTDRAWSURFACE *lplpDDSurface, IUnknown *unknown)
 {
-  //ForceDDSurfaceDescTo16(lpDDSurfaceDesc);
-
   HRESULT res = originalCreateSurfaceFunction(lpDD, lpDDSurfaceDesc, lplpDDSurface, unknown);
 
   if (res == DD_OK) {
@@ -93,8 +100,11 @@ HRESULT WINAPI InterceptCreateSurface(LPDIRECTDRAW lpDD, LPDDSURFACEDESC lpDDSur
     }
 
     if (!originalDDSurfaceGetDescFunction) {
-      //originalDDSurfaceGetDescFunction = (ddSurfaceGetDescFunction)OverwriteVirtualTable(*lplpDDSurface, 0x16, (LPVOID)InterceptSurfaceGetDesc);
-      originalDDSurfaceGetDescFunction = (ddSurfaceGetDescFunction)OverwriteVirtualTable(*lplpDDSurface, 0x16, NULL);
+      originalDDSurfaceGetDescFunction = (ddSurfaceGetDescFunction)OverwriteVirtualTable(*lplpDDSurface, 0x16, (LPVOID)InterceptSurfaceGetDesc);
+    }
+
+    if (!originalBltFunction) {
+      originalBltFunction = (ddBltFunction)OverwriteVirtualTable(*lplpDDSurface, 0x5, (LPVOID)InterceptDirectDrawSurfaceBlt);
     }
   }
 
@@ -112,19 +122,34 @@ HRESULT WINAPI InterceptGetDisplayMode(LPDIRECTDRAW lpDD, LPDDSURFACEDESC lpDDSu
   return res;
 }
 
+typedef HRESULT (WINAPI *ddrawQueryInterfaceFunction) (LPDIRECTDRAW lpDD, REFIID riid, LPVOID FAR * ppvObj);
+ddrawQueryInterfaceFunction ddrawQueryInterfaceOriginal = NULL;
+HRESULT WINAPI InterceptDirectDrawQueryInterface(LPDIRECTDRAW lpDD, REFIID riid, LPVOID FAR * ppvObj)
+{
+  HRESULT res = ddrawQueryInterfaceOriginal(lpDD, riid, ppvObj);
+
+  return res;
+}
+
 ddCreateFunction ddCreateOriginal = NULL;
 HRESULT WINAPI InterceptDirectDrawCreate(GUID *lpGUID, LPDIRECTDRAW *lplpDD, IUnknown *pUnkOuter)
 {
   HRESULT res = ddCreateOriginal(lpGUID, lplpDD, pUnkOuter);
 
   if (res == DD_OK) {
-    if (!originalGetDisplayMode) {
-      originalGetDisplayMode = (ddGetDisplayModeFunction)OverwriteVirtualTable(*lplpDD, 0xC, (LPVOID)InterceptGetDisplayMode);
+    ddGetDisplayModeFunction f1 = (ddGetDisplayModeFunction)OverwriteVirtualTable(*lplpDD, 0xC, (LPVOID)InterceptGetDisplayMode);
+    if (InterceptGetDisplayMode != f1) {
+      originalGetDisplayMode = f1;
     }
 
-    ddCreateSurfaceFunction f = (ddCreateSurfaceFunction)OverwriteVirtualTable(*lplpDD, 0x6, (LPVOID)InterceptCreateSurface);
-    if (f != InterceptCreateSurface) {
-      originalCreateSurfaceFunction = f;
+    ddCreateSurfaceFunction f2 = (ddCreateSurfaceFunction)OverwriteVirtualTable(*lplpDD, 0x6, (LPVOID)InterceptCreateSurface);
+    if (InterceptCreateSurface != f2) {
+      originalCreateSurfaceFunction = f2;
+    }
+
+    ddrawQueryInterfaceFunction f3 = (ddrawQueryInterfaceFunction)OverwriteVirtualTable(*lplpDD, 0x0, (LPVOID)InterceptDirectDrawQueryInterface);
+    if (InterceptDirectDrawQueryInterface != f3) {
+      ddrawQueryInterfaceOriginal = f3;
     }
   }
 
@@ -220,7 +245,7 @@ HRESULT WINAPI InterceptD3DRMViewportSetField(LPDIRECT3DRMVIEWPORT viewport, D3D
   return d3drmViewportSetFieldOriginal(viewport, field);
 }
 
-const SIZE_T max_frame_numbers = 60;
+const SIZE_T max_frame_numbers = 10;
 SIZE_T current_frame = 0;
 DWORD frame_deltas[max_frame_numbers];
 DWORD last_time = 0;
@@ -242,7 +267,7 @@ HRESULT WINAPI InterceptD3DRMDeviceUpdate(LPDIRECT3DRMDEVICE device)
         avg_delta += frame_deltas[i];
       }
       avg_delta /= max_frame_numbers;
-      printf("Avg FPS: %f\n", 1000.0 / avg_delta);
+      //printf("Avg FPS: %f\n", 1000.0 / avg_delta);
     }
   }
 
@@ -251,11 +276,135 @@ HRESULT WINAPI InterceptD3DRMDeviceUpdate(LPDIRECT3DRMDEVICE device)
   return d3drmDeviceUpdateOriginal(device);
 }
 
+std::map<LPDIRECT3DDEVICE, std::vector<D3DPICKRECORD> > g_PickRecords;
+
+typedef HRESULT (WINAPI *d3dimPickFunction) (LPDIRECT3DDEVICE, LPDIRECT3DEXECUTEBUFFER, LPDIRECT3DVIEWPORT, DWORD, LPD3DRECT);
+d3dimPickFunction d3dimPickOriginal = NULL;
+HRESULT WINAPI InterceptD3DIMPick(LPDIRECT3DDEVICE, LPDIRECT3DEXECUTEBUFFER buffer, LPDIRECT3DVIEWPORT, DWORD, LPD3DRECT)
+{
+  D3DEXECUTEDATA data;
+  D3DEXECUTEBUFFERDESC desc;
+
+  HRESULT hr;
+
+  char buf[1024];
+
+  sprintf(buf, "got buffer %p", buffer);
+  MessageBoxA(0,buf,0,0);
+
+  hr = buffer->Lock(&desc);
+  if (hr != D3D_OK) {
+    sprintf(buf, "err1 %lx", hr);
+    MessageBoxA(0,buf,0,0);
+    return hr;
+  }
+  hr = buffer->GetExecuteData(&data);
+  if (hr != D3D_OK) {
+    sprintf(buf, "err2 %lx", hr);
+    MessageBoxA(0,buf,0,0);
+    return hr;
+  }
+
+  char *instr = (char *)desc.lpData + data.dwInstructionOffset;
+
+  bool exit = false;
+  while (!exit) {
+    LPD3DINSTRUCTION current = (LPD3DINSTRUCTION)instr;
+    BYTE size = current->bSize;
+    WORD count = current->wCount;
+
+    sprintf(buf, "got instruction 0x%x size %u count %u\n", current->bOpcode, size, count);
+    MessageBoxA(0,buf,0,0);
+
+    break;
+
+    instr += sizeof(D3DINSTRUCTION);
+
+    switch (current->bOpcode) {
+    /*case D3DOP_TRIANGLE:
+    {
+      for (WORD i=0; i<count; i++) {
+        D3DTRIANGLE *ci = (D3DTRIANGLE*)instr;
+        //printf("triangle %i %i %i", ci->v1, ci->v2, ci->v3);
+        instr += size;
+      }
+      break;
+    }*/
+    case D3DOP_BRANCHFORWARD:
+    {
+      for (int i = 0; i < count; ++i) {
+        D3DBRANCH *ci = (D3DBRANCH *)instr;
+
+        if ((data.dsStatus.dwStatus & ci->dwMask) == ci->dwValue) {
+          if (!ci->bNegate) {
+            if (ci->dwOffset) {
+              instr = (char*)current + ci->dwOffset;
+              break;
+            }
+          }
+        } else {
+          if (ci->bNegate) {
+            if (ci->dwOffset) {
+              instr = (char*)current + ci->dwOffset;
+              break;
+            }
+          }
+        }
+
+        instr += size;
+      }
+      break;
+    }
+    case D3DOP_EXIT:
+      MessageBoxA(0,"exit",0,0);
+      instr += size;
+      exit = true;
+      break;
+    default:
+      instr += size * count;
+    }
+  }
+
+  buffer->Unlock();
+
+  return D3D_OK;
+}
+
+typedef HRESULT (WINAPI *d3dimGetPickRecordsFunction)(LPDIRECT3DDEVICE lpDevice, LPDWORD dwCount, LPD3DPICKRECORD lpRecords);
+d3dimGetPickRecordsFunction d3dimGetPickRecordsOriginal = NULL;
+HRESULT WINAPI InterceptD3DIMGetPickRecords(LPDIRECT3DDEVICE lpDevice, LPDWORD dwCount, LPD3DPICKRECORD lpRecords)
+{
+  // Catch NULL count value
+  if (!dwCount) {
+    return DDERR_INVALIDPARAMS;
+  }
+
+  if (*dwCount && lpRecords) {
+    LPD3DPICKRECORD our_records = &g_PickRecords[lpDevice][0];
+    memcpy(lpRecords, our_records, *dwCount * sizeof(D3DPICKRECORD));
+  }
+
+  *dwCount = g_PickRecords.size();
+
+  return D3D_OK;
+}
+
+LPDIRECT3DRMDEVICE d3drm_device = NULL;
+
 typedef HRESULT (WINAPI *d3drmCreateViewportFunction)(LPDIRECT3DRM d3drm, LPDIRECT3DRMDEVICE device, LPDIRECT3DRMFRAME frame, DWORD x, DWORD y, DWORD w, DWORD h, LPDIRECT3DRMVIEWPORT *viewport);
 d3drmCreateViewportFunction d3drmCreateViewportOriginal = NULL;
 HRESULT WINAPI InterceptD3DRMCreateViewport(LPDIRECT3DRM d3drm, LPDIRECT3DRMDEVICE device, LPDIRECT3DRMFRAME frame, DWORD x, DWORD y, DWORD w, DWORD h, LPDIRECT3DRMVIEWPORT *viewport)
 {
   HRESULT res = d3drmCreateViewportOriginal(d3drm, device, frame, x, y, w, h, viewport);
+
+  d3drm_device = device;
+  if (!d3dimPickOriginal) {
+    LPDIRECT3DDEVICE d3dim_device;
+    if (d3drm_device->GetDirect3DDevice(&d3dim_device) == D3D_OK) {
+      d3dimPickOriginal = (d3dimPickFunction)OverwriteVirtualTable(d3dim_device, 12, (LPVOID)InterceptD3DIMPick);
+      d3dimGetPickRecordsOriginal = (d3dimGetPickRecordsFunction)OverwriteVirtualTable(d3dim_device, 13, (LPVOID)InterceptD3DIMGetPickRecords);
+    }
+  }
 
   if (res == DD_OK) {
     if (!d3drmDeviceUpdateOriginal) {
@@ -276,8 +425,9 @@ HRESULT WINAPI InterceptDirect3DRMCreate(LPDIRECT3DRM FAR *lplpDirect3DRM)
   HRESULT result = d3drmCreateOriginal(lplpDirect3DRM);
 
   if (result == DD_OK) {
-    if (!d3drmCreateViewportOriginal) {
-      d3drmCreateViewportOriginal = (d3drmCreateViewportFunction)OverwriteVirtualTable(*lplpDirect3DRM, 0x38, (LPVOID)InterceptD3DRMCreateViewport);
+    d3drmCreateViewportFunction f1 = (d3drmCreateViewportFunction)OverwriteVirtualTable(*lplpDirect3DRM, 0x38, (LPVOID)InterceptD3DRMCreateViewport);
+    if (f1 != InterceptD3DRMCreateViewport) {
+      d3drmCreateViewportOriginal = f1;
     }
   }
 
@@ -304,6 +454,11 @@ LRESULT CALLBACK InterceptWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
     InterceptD3DRMViewportSetField(last_viewport, last_fov + multiplier);
 
     return 0;
+  } else if (uMsg == WM_KEYDOWN) {
+    if (wParam == '5') {
+      d3drm_device->SetQuality(D3DRMRENDER_WIREFRAME);
+      printf("quality should have changed\n");
+    }
   }
 
   return originalWndProc(hwnd, uMsg, wParam, lParam);
