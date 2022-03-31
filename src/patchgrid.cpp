@@ -151,6 +151,10 @@ PatchGrid::PatchGrid()
            _T(""), // FIXME: Write description for this
            AddBoolItem(sectionGraphics, _T("Flip Video Memory Pages"), false));
 
+  AddPatch("BackBuffersInVRAM",
+           _T(""), // FIXME: Write description for this
+           AddBoolItem(sectionGraphics, _T("Draw 3D to Video Memory"), false));
+
   vector<string> fpsList;
   fpsList.push_back(_T("Default"));
   fpsList.push_back(_T("Uncapped"));

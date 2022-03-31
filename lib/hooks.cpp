@@ -189,6 +189,11 @@ LONG WINAPI InterceptRegQueryValueExA(HKEY hKey, LPCSTR lpValueName, LPDWORD lpR
     ReturnRegistryYESNOFromBool(lpData, config.GetInt(_T("FlipSurfaces"), 0));
     return ERROR_SUCCESS;
 
+  } else if (!strcmp(lpValueName, "Back Buffers in Video RAM")) {
+
+    ReturnRegistryYESNOFromBool(lpData, config.GetInt(_T("BackBuffersInVRAM"), 0));
+    return ERROR_SUCCESS;
+
   } else if (!strcmp(lpValueName, "3D Device ID")) {
 
     std::string dev_id = config.GetString("D3DDeviceID");
