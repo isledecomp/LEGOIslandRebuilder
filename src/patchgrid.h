@@ -14,6 +14,12 @@ public:
 
   void AddD3DDevice(const std::string &name, const std::string &id);
 
+  CString GetItemDescription(HITEM item);
+  CString GetItemDescription(const std::string &key)
+  {
+    return m_mPatchDescriptions[key];
+  }
+
 private:
   void AddPatch(const std::string &id, const CString &description, HITEM item);
 

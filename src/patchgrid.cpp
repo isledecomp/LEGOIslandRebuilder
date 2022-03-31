@@ -315,6 +315,16 @@ void PatchGrid::AddD3DDevice(const string &name, const string &id)
   m_d3dDeviceIDs.push_back(id);
 }
 
+CString PatchGrid::GetItemDescription(HITEM item)
+{
+  for (std::map<std::string, HITEM>::const_iterator it=m_mPatchItems.begin(); it!=m_mPatchItems.end(); it++) {
+    if (it->second == item) {
+      return GetItemDescription(it->first);
+    }
+  }
+  return CString();
+}
+
 void PatchGrid::AddPatch(const string &id, const CString &description, HITEM item)
 {
   m_mPatchItems[id] = item;
