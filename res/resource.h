@@ -3,10 +3,8 @@
 
 #define IDS_TITLE     0
 #define IDS_SUBTITLE  1
-#define IDS_PATCHES   2
-#define IDS_MUSIC     3
-#define IDS_RUN       4
-#define IDS_KILL      5
+#define IDS_RUN       2
+#define IDS_KILL      3
 
 #define RC_MANIFEST   24
 
