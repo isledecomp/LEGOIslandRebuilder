@@ -181,7 +181,12 @@ LONG WINAPI InterceptRegQueryValueExA(HKEY hKey, LPCSTR lpValueName, LPDWORD lpR
 
   } else if (!strcmp(lpValueName, "Draw Cursor")) {
 
-    ReturnRegistryYESNOFromBool(lpData, config.GetInt(_T("DrawCursor"), 1));
+    ReturnRegistryYESNOFromBool(lpData, config.GetInt(_T("DrawCursor"), 0));
+    return ERROR_SUCCESS;
+
+  } else if (!strcmp(lpValueName, "Flip Surfaces")) {
+
+    ReturnRegistryYESNOFromBool(lpData, config.GetInt(_T("FlipSurfaces"), 0));
     return ERROR_SUCCESS;
 
   } else if (!strcmp(lpValueName, "3D Device ID")) {

@@ -31,6 +31,15 @@ DWORD WINAPI Patch()
   dsCreateOriginal = (dsCreateFunction)OverwriteImport(dllBase, "DirectSoundCreate", (LPVOID)InterceptDirectSoundCreate);
   dinputCreateOriginal = (dinputCreateFunction)OverwriteImport(dllBase, "DirectInputCreateA", (LPVOID)InterceptDirectInputCreateA);
 
+  // Flip surfaces is incompatible with full screen, if these options are set, warn the user
+  if (config.GetInt(_T("FlipSurfaces")) && !config.GetInt(_T("FullScreen"))) {
+    if (MessageBoxA(0, "The setting 'Flip Video Memory Pages' is incompatible with LEGO Island's windowed mode. "
+                       "LEGO Island will likely fail to start up unless you disable 'Flip Video Memory Pages' "
+                       "or run in full screen mode. Do you wish to continue?", "Warning", MB_YESNO) == IDNO) {
+      TerminateProcess(GetCurrentProcess(), 0);
+    }
+  }
+
   // Stay active when defocused
   if (config.GetInt(_T("StayActiveWhenDefocused"))) {
     // Patch jump if window isn't active (TODO: Replace with C++ patch)

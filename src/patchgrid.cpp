@@ -147,6 +147,10 @@ PatchGrid::PatchGrid()
            _T("Renders a custom in-game cursor, rather than a standard Windows pointer."),
            AddBoolItem(sectionGraphics, _T("Draw Cursor"), false));
 
+  AddPatch("FlipSurfaces",
+           _T(""), // FIXME: Write description for this
+           AddBoolItem(sectionGraphics, _T("Flip Video Memory Pages"), false));
+
   vector<string> fpsList;
   fpsList.push_back(_T("Default"));
   fpsList.push_back(_T("Uncapped"));
