@@ -21,13 +21,11 @@ public:
 
   afx_msg void OnSubtitleClick();
 
-  afx_msg void OnMusicLinkClick();
-
   afx_msg void OnSize(UINT type, int width, int height);
 
   afx_msg void OnGetMinMaxInfo(MINMAXINFO *info);
 
-  afx_msg void OnTabSelChange(NMHDR* pNMHDR, LRESULT* pResult);
+  afx_msg LRESULT OnGridSelChange(WPARAM, LPARAM);
 
   static BOOL CALLBACK SetFont(HWND child, LPARAM font);
 
@@ -43,16 +41,11 @@ private:
   enum {
     ID_RUN = 1000,
     ID_KILL,
-    ID_TABCTRL,
     ID_SUBTITLE,
     ID_PATCHGRID,
-    ID_MUSICLINK,
+    ID_PATCHTITLE,
+    ID_PATCHDESC,
     ID_COUNT
-  };
-
-  enum Tab {
-    TAB_PATCHES,
-    TAB_MUSIC
   };
 
   UINT m_nFontHeight;
@@ -60,14 +53,12 @@ private:
   CStatic m_cTopLevelTitle;
   CLinkStatic m_cTopLevelSubtitle;
 
-  CTabCtrl m_cTabCtrl;
-
   CButton m_cRunBtn;
   CButton m_cKillBtn;
 
   PatchGrid m_cPatchGrid;
-
-  CLinkStatic m_cMusicLink;
+  CStatic m_cPatchTitle;
+  CStatic m_cPatchDesc;
 
   std::vector<HANDLE> m_lProcesses;
 

@@ -35,30 +35,18 @@ CRebuilderWindow::CRebuilderWindow()
   // Create subtitle
   m_cTopLevelSubtitle.Create(GetResourceString(IDS_SUBTITLE), WS_CHILD | WS_VISIBLE | SS_CENTER | SS_NOTIFY, CRect(), this, ID_SUBTITLE);
 
-  // Create tab control
-  m_cTabCtrl.Create(WS_CHILD | WS_VISIBLE, CRect(), this, ID_TABCTRL);
-
   // Initialize common TCITEM
   TCITEM tabItem;
   ZeroMemory(&tabItem, sizeof(tabItem));
   tabItem.mask |= TCIF_TEXT;
   tabItem.pszText = new TCHAR[100];
 
-  // Add "patches" tab
-  _tcscpy(tabItem.pszText, GetResourceString(IDS_PATCHES));
-  m_cTabCtrl.InsertItem(TAB_PATCHES, &tabItem);
-
-  // Add "music" tab
-  _tcscpy(tabItem.pszText, GetResourceString(IDS_MUSIC));
-  m_cTabCtrl.InsertItem(TAB_MUSIC, &tabItem);
-
   delete [] tabItem.pszText;
 
   // Create property grid
-  m_cPatchGrid.Create(AfxRegisterWndClass(CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW), _T("Patch Grid"), WS_CHILD | WS_VISIBLE, CRect(), &m_cTabCtrl, ID_PATCHGRID);
-
-  m_cMusicLink.Create(_T("Coming back soon. If you need music replacement, download the old .NET version here."),
-                       WS_CHILD | SS_CENTER, CRect(), &m_cTabCtrl, ID_MUSICLINK);
+  m_cPatchGrid.Create(AfxRegisterWndClass(CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW), _T("Patch Grid"), WS_CHILD | WS_VISIBLE, CRect(), this, ID_PATCHGRID);
+  m_cPatchTitle.Create(CString(), WS_CHILD | WS_VISIBLE, CRect(), this, ID_PATCHTITLE);
+  m_cPatchDesc.Create(CString(), WS_CHILD | WS_VISIBLE, CRect(), this, ID_PATCHDESC);
 
   // Create run button
   m_cRunBtn.Create(GetResourceString(IDS_RUN), WS_CHILD | WS_VISIBLE, CRect(), this, ID_RUN);
@@ -143,12 +131,7 @@ void CRebuilderWindow::OnKillClick()
 
 void CRebuilderWindow::OnSubtitleClick()
 {
-  ShellExecute(NULL, _T("open"), _T("http://itsmattkc.com/"), NULL, NULL, SW_SHOWNORMAL);
-}
-
-void CRebuilderWindow::OnMusicLinkClick()
-{
-  ShellExecute(NULL, _T("open"), _T("http://github.com/itsmattkc/LEGOIslandRebuilder/releases"), NULL, NULL, SW_SHOWNORMAL);
+  ShellExecute(NULL, _T("open"), _T("https://mattkc.com/"), NULL, NULL, SW_SHOWNORMAL);
 }
 
 void CRebuilderWindow::OnSize(UINT type, int width, int height)
@@ -156,30 +139,39 @@ void CRebuilderWindow::OnSize(UINT type, int width, int height)
   const int padding = m_nFontHeight/2;
   const int dblPadding = padding * 2;
 
-  // Top components
-  m_cTopLevelTitle.SetWindowPos(NULL, 0, padding, width, m_nFontHeight*2, 0);
+  int y, h;
 
-  int topComponentEnd = padding+m_nFontHeight*2;
-  m_cTopLevelSubtitle.SetWindowPos(NULL, 0, topComponentEnd, width, m_nFontHeight, 0);
-  topComponentEnd += m_nFontHeight;
+  // Top labels
+  y = padding;
+  h = m_nFontHeight*2;
 
-  // Bottom components
+  m_cTopLevelTitle.SetWindowPos(NULL, 0, y, width, h, 0);
+
+  y += h;
+  h = m_nFontHeight;
+
+  m_cTopLevelSubtitle.SetWindowPos(NULL, 0, y, width, h, 0);
+
+  y += h;
+  y += padding;
+
+  // Bottom buttons
   const int btnHeight = m_nFontHeight*18/10;
-  int bottomComponentStart = height - btnHeight - padding;
-  int bottomComponentWidth = width - dblPadding;
-  m_cRunBtn.SetWindowPos(NULL, padding, bottomComponentStart, bottomComponentWidth, btnHeight, 0);
-  m_cKillBtn.SetWindowPos(NULL, padding, bottomComponentStart, bottomComponentWidth, btnHeight, 0);
+  int btnY = height - btnHeight - padding;
+  int btnWidth = width - dblPadding;
+  m_cRunBtn.SetWindowPos(NULL, padding, btnY, btnWidth, btnHeight, 0);
+  m_cKillBtn.SetWindowPos(NULL, padding, btnY, btnWidth, btnHeight, 0);
 
-  // Center components
-  int centerHeight = bottomComponentStart - topComponentEnd;
-  m_cTabCtrl.SetWindowPos(NULL, padding, topComponentEnd + padding, bottomComponentWidth, centerHeight - dblPadding, 0);
+  h = m_nFontHeight*4;
+  int patchDescY = btnY - h;
+  m_cPatchDesc.SetWindowPos(NULL, padding, patchDescY, btnWidth, h, 0);
 
-  // Tabs
-  RECT tabClientRect;
-  m_cTabCtrl.GetClientRect(&tabClientRect);
-  m_cTabCtrl.AdjustRect(FALSE, &tabClientRect);
-  m_cPatchGrid.SetWindowPos(NULL, tabClientRect.left, tabClientRect.top, tabClientRect.right - tabClientRect.left, tabClientRect.bottom - tabClientRect.top, 0);
-  m_cMusicLink.SetWindowPos(NULL, tabClientRect.left, tabClientRect.top, tabClientRect.right - tabClientRect.left, tabClientRect.bottom - tabClientRect.top, 0);
+  h = m_nFontHeight;
+  patchDescY -= h;
+  m_cPatchTitle.SetWindowPos(NULL, padding, patchDescY, btnWidth, h, 0);
+
+  // Consume remaining space with patch grid
+  m_cPatchGrid.SetWindowPos(NULL, padding, y, btnWidth, patchDescY - y - padding, 0);
 }
 
 void CRebuilderWindow::OnGetMinMaxInfo(MINMAXINFO *info)
@@ -191,12 +183,13 @@ void CRebuilderWindow::OnGetMinMaxInfo(MINMAXINFO *info)
   info->ptMinTrackSize.y = m_nFontHeight * minimumWindowHeight;
 }
 
-void CRebuilderWindow::OnTabSelChange(NMHDR *pNMHDR, LRESULT *pResult)
+LRESULT CRebuilderWindow::OnGridSelChange(WPARAM wParam, LPARAM lParam)
 {
-  int tab = m_cTabCtrl.GetCurSel();
+  HITEM hItem = (HITEM) wParam;
 
-  m_cPatchGrid.ShowWindow((tab == TAB_PATCHES) ? SW_SHOWNORMAL : SW_HIDE);
-  m_cMusicLink.ShowWindow((tab == TAB_MUSIC) ? SW_SHOWNORMAL : SW_HIDE);
+  m_cPatchTitle.SetWindowText(m_cPatchGrid.GetItemText(hItem).c_str());
+  m_cPatchDesc.SetWindowText(m_cPatchGrid.GetItemDescription(hItem));
+  return 0;
 }
 
 BOOL CRebuilderWindow::SetFont(HWND child, LPARAM font)
@@ -247,6 +240,7 @@ void CRebuilderWindow::SetGUIFonts()
   SetFont(m_cTopLevelTitle.GetSafeHwnd(), (LPARAM)bold);
   SetFont(m_cRunBtn.GetSafeHwnd(), (LPARAM)bold);
   SetFont(m_cKillBtn.GetSafeHwnd(), (LPARAM)bold);
+  SetFont(m_cPatchTitle.GetSafeHwnd(), (LPARAM)bold);
 
   // Create link variant for subtitle
   lf.lfWeight = FW_NORMAL;
@@ -282,6 +276,5 @@ BEGIN_MESSAGE_MAP(CRebuilderWindow, super)
   ON_BN_CLICKED(ID_RUN, OnRunClick)
   ON_BN_CLICKED(ID_KILL, OnKillClick)
   ON_BN_CLICKED(ID_SUBTITLE, OnSubtitleClick)
-  ON_BN_CLICKED(ID_MUSICLINK, OnMusicLinkClick)
-  ON_NOTIFY(TCN_SELCHANGE, ID_TABCTRL, OnTabSelChange)
+  ON_MESSAGE(WM_PG_SELECTIONCHANGED, OnGridSelChange)
 END_MESSAGE_MAP()
