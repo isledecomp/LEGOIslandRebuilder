@@ -19,8 +19,6 @@ add_library(Rebld SHARED
   lib/mmpassthru.cpp
   lib/util.cpp
   lib/util.h
-  lib/worker.cpp
-  lib/worker.h
 )
 target_compile_options(Rebld PRIVATE /MT)
 target_link_libraries(Rebld PRIVATE winmm.lib dxguid.lib shlwapi.lib)
