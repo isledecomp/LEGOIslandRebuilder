@@ -276,7 +276,7 @@ HRESULT WINAPI InterceptD3DRMDeviceUpdate(LPDIRECT3DRMDEVICE device)
   return d3drmDeviceUpdateOriginal(device);
 }
 
-std::map<LPDIRECT3DDEVICE, std::vector<D3DPICKRECORD> > g_PickRecords;
+/*std::map<LPDIRECT3DDEVICE, std::vector<D3DPICKRECORD> > g_PickRecords;
 
 typedef HRESULT (WINAPI *d3dimPickFunction) (LPDIRECT3DDEVICE, LPDIRECT3DEXECUTEBUFFER, LPDIRECT3DVIEWPORT, DWORD, LPD3DRECT);
 d3dimPickFunction d3dimPickOriginal = NULL;
@@ -321,7 +321,7 @@ HRESULT WINAPI InterceptD3DIMPick(LPDIRECT3DDEVICE, LPDIRECT3DEXECUTEBUFFER buff
     instr += sizeof(D3DINSTRUCTION);
 
     switch (current->bOpcode) {
-    /*case D3DOP_TRIANGLE:
+    case D3DOP_TRIANGLE:
     {
       for (WORD i=0; i<count; i++) {
         D3DTRIANGLE *ci = (D3DTRIANGLE*)instr;
@@ -329,7 +329,7 @@ HRESULT WINAPI InterceptD3DIMPick(LPDIRECT3DDEVICE, LPDIRECT3DEXECUTEBUFFER buff
         instr += size;
       }
       break;
-    }*/
+    }
     case D3DOP_BRANCHFORWARD:
     {
       for (int i = 0; i < count; ++i) {
@@ -387,7 +387,7 @@ HRESULT WINAPI InterceptD3DIMGetPickRecords(LPDIRECT3DDEVICE lpDevice, LPDWORD d
   *dwCount = g_PickRecords.size();
 
   return D3D_OK;
-}
+}*/
 
 LPDIRECT3DRMDEVICE d3drm_device = NULL;
 
@@ -398,13 +398,13 @@ HRESULT WINAPI InterceptD3DRMCreateViewport(LPDIRECT3DRM d3drm, LPDIRECT3DRMDEVI
   HRESULT res = d3drmCreateViewportOriginal(d3drm, device, frame, x, y, w, h, viewport);
 
   d3drm_device = device;
-  if (!d3dimPickOriginal) {
+  /*if (!d3dimPickOriginal) {
     LPDIRECT3DDEVICE d3dim_device;
     if (d3drm_device->GetDirect3DDevice(&d3dim_device) == D3D_OK) {
       d3dimPickOriginal = (d3dimPickFunction)OverwriteVirtualTable(d3dim_device, 12, (LPVOID)InterceptD3DIMPick);
       d3dimGetPickRecordsOriginal = (d3dimGetPickRecordsFunction)OverwriteVirtualTable(d3dim_device, 13, (LPVOID)InterceptD3DIMGetPickRecords);
     }
-  }
+  }*/
 
   if (res == DD_OK) {
     if (!d3drmDeviceUpdateOriginal) {
