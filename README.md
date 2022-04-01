@@ -48,7 +48,7 @@ Rebuilder utilizes the [CMake](https://cmake.org/download/) build system. Ensure
 
 Compilation is currently broken with build systems other than [Ninja](https://ninja-build.org/), so it must be installed until this is addressed.
 
-In order to retain compatibility with Windows 95, Rebuilder is compiled using MSVC 4.2.* For convenience and compatibility, a portable version of MSVC 4.2 is available [here](https://github.com/itsmattkc/VC420). Its command line can be accessed by running `bin/VCVARS32.BAT` from any normal command prompt. 
+In order to retain compatibility with Windows 95, Rebuilder is compiled using MSVC 6.0.* For convenience and compatibility, a portable version of MSVC 6.0 is available [here](https://github.com/itsmattkc/MSVC600). Its command line can be accessed by running `VC98/bin/VCVARS32.BAT` from any normal command prompt. 
 
 Using the MSVC command line:
 
