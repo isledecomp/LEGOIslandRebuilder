@@ -79,7 +79,7 @@ By default, Rebuilder opens a graphical interface which can be used to set the p
 * `-r/--run`: Runs LEGO Island with the currently saved configuration, bypassing Rebuilder's interface entirely. 
 * `-h/--help`: Shows a help screen with usage details.
 
-<font size="4">Linux and macOS</font>
+### Linux and macOS
 
 Rebuilder works on non-Windows platforms using Wine.
 
