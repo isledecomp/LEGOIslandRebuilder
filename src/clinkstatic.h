@@ -12,6 +12,8 @@ public:
 
   afx_msg HBRUSH CtlColor(CDC* pDC, UINT nCtlColor);
 
+  afx_msg BOOL OnEraseBkgnd(CDC*);
+
 private:
   HCURSOR m_hPointHand;
 

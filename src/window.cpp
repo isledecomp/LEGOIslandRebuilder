@@ -22,7 +22,7 @@ CRebuilderWindow::CRebuilderWindow()
   // Register custom window class
   LPCTSTR wndclass = AfxRegisterWndClass(CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW,
                                          LoadCursor(NULL, IDC_ARROW),
-                                         (HBRUSH) COLOR_WINDOW,
+                                         GetSysColorBrush(COLOR_3DFACE),
                                          LoadIcon(AfxGetInstanceHandle(), "IDI_ICON1"));
 
   const char *title = "LEGO Island Rebuilder";
@@ -37,18 +37,20 @@ CRebuilderWindow::CRebuilderWindow()
   // Create subtitle
   m_cTopLevelSubtitle.Create("by MattKC and Ramen2X", WS_CHILD | WS_VISIBLE | SS_CENTER | SS_NOTIFY, CRect(), this, ID_SUBTITLE);
 
+  // Create tab control
+  m_cTabCtrl.Create(WS_CHILD | WS_VISIBLE, CRect(), this, ID_TABCTRL);
+  m_cTabCtrl.CreateChildren();
+
   // Initialize common TCITEM
   TCITEM tabItem;
   ZeroMemory(&tabItem, sizeof(tabItem));
   tabItem.mask |= TCIF_TEXT;
-  tabItem.pszText = new TCHAR[100];
 
-  delete [] tabItem.pszText;
+  tabItem.pszText = "Patches";
+  m_cTabCtrl.InsertItem(TAB_PATCHES, &tabItem);
 
-  // Create property grid
-  m_cPatchGrid.Create(AfxRegisterWndClass(CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW), "Patch Grid", WS_CHILD | WS_VISIBLE, CRect(), this, ID_PATCHGRID);
-  m_cPatchTitle.Create(CString(), WS_CHILD | WS_VISIBLE, CRect(), this, ID_PATCHTITLE);
-  m_cPatchDesc.Create(CString(), WS_CHILD | WS_VISIBLE, CRect(), this, ID_PATCHDESC);
+  tabItem.pszText = "Music";
+  m_cTabCtrl.InsertItem(TAB_MUSIC, &tabItem);
 
   // Create run button
   m_cRunBtn.Create("Run", WS_CHILD | WS_VISIBLE, CRect(), this, ID_RUN);
@@ -67,12 +69,12 @@ CRebuilderWindow::CRebuilderWindow()
 
   // Set column width
   RECT patchGridClientRect;
-  m_cPatchGrid.GetClientRect(&patchGridClientRect);
-  m_cPatchGrid.SetGutterWidth((patchGridClientRect.right - patchGridClientRect.left) / 2);
+  m_cTabCtrl.GetPatchGrid().GetClientRect(&patchGridClientRect);
+  m_cTabCtrl.GetPatchGrid().SetGutterWidth((patchGridClientRect.right - patchGridClientRect.left) / 2);
 
   TCHAR configPath[MAX_PATH];
   if (GetConfigFilename(configPath)) {
-    m_cPatchGrid.LoadConfiguration(configPath);
+    m_cTabCtrl.GetPatchGrid().LoadConfiguration(configPath);
   }
 }
 
@@ -95,7 +97,7 @@ BOOL CRebuilderWindow::TrySaving()
   TCHAR configPath[MAX_PATH];
 
   if (GetConfigFilename(configPath)) {
-    if (m_cPatchGrid.SaveConfiguration(configPath)) {
+    if (m_cTabCtrl.GetPatchGrid().SaveConfiguration(configPath)) {
       return TRUE;
     } else {
       MessageBox("Failed to save configuration file.");
@@ -164,16 +166,31 @@ void CRebuilderWindow::OnSize(UINT type, int width, int height)
   m_cRunBtn.SetWindowPos(NULL, padding, btnY, btnWidth, btnHeight, 0);
   m_cKillBtn.SetWindowPos(NULL, padding, btnY, btnWidth, btnHeight, 0);
 
+  h = btnY - y - padding;
+  m_cTabCtrl.SetWindowPos(NULL, padding, y, btnWidth, h, 0);
+
+  // Generate internal rect
+  RECT inner;
+  m_cTabCtrl.GetClientRect(&inner);
+  m_cTabCtrl.AdjustRect(FALSE, &inner);
+
+  int w = inner.right - inner.left;
+
   h = m_nFontHeight*4;
-  int patchDescY = btnY - h;
-  m_cPatchDesc.SetWindowPos(NULL, padding, patchDescY, btnWidth, h, 0);
+  int patchDescY = inner.bottom - h;
+  m_cTabCtrl.GetPatchDesc().SetWindowPos(NULL, inner.left, patchDescY, w, h, 0);
 
   h = m_nFontHeight;
   patchDescY -= h;
-  m_cPatchTitle.SetWindowPos(NULL, padding, patchDescY, btnWidth, h, 0);
+  m_cTabCtrl.GetPatchTitle().SetWindowPos(NULL, inner.left, patchDescY, w, h, 0);
 
   // Consume remaining space with patch grid
-  m_cPatchGrid.SetWindowPos(NULL, padding, y, btnWidth, patchDescY - y - padding, 0);
+  h = patchDescY - inner.top;
+  m_cTabCtrl.GetPatchGrid().SetWindowPos(NULL, inner.left, inner.top, w, h, 0);
+
+  h = inner.bottom - inner.top;
+  int musicLinkWidth = w/4*3;
+  m_cTabCtrl.GetMusicLink().SetWindowPos(NULL, inner.left + w/2 - musicLinkWidth/2, inner.top + m_nFontHeight, musicLinkWidth, h, 0);
 }
 
 void CRebuilderWindow::OnGetMinMaxInfo(MINMAXINFO *info)
@@ -185,13 +202,14 @@ void CRebuilderWindow::OnGetMinMaxInfo(MINMAXINFO *info)
   info->ptMinTrackSize.y = m_nFontHeight * minimumWindowHeight;
 }
 
-LRESULT CRebuilderWindow::OnGridSelChange(WPARAM wParam, LPARAM lParam)
+void CRebuilderWindow::OnTabSelChange(NMHDR *pNMHDR, LRESULT *pResult)
 {
-  HITEM hItem = (HITEM) wParam;
+  int tab = m_cTabCtrl.GetCurSel();
 
-  m_cPatchTitle.SetWindowText(m_cPatchGrid.GetItemText(hItem).c_str());
-  m_cPatchDesc.SetWindowText(m_cPatchGrid.GetItemDescription(hItem));
-  return 0;
+  m_cTabCtrl.GetPatchGrid().ShowWindow((tab == TAB_PATCHES) ? SW_SHOWNORMAL : SW_HIDE);
+  m_cTabCtrl.GetPatchTitle().ShowWindow((tab == TAB_PATCHES) ? SW_SHOWNORMAL : SW_HIDE);
+  m_cTabCtrl.GetPatchDesc().ShowWindow((tab == TAB_PATCHES) ? SW_SHOWNORMAL : SW_HIDE);
+  m_cTabCtrl.GetMusicLink().ShowWindow((tab == TAB_MUSIC) ? SW_SHOWNORMAL : SW_HIDE);
 }
 
 BOOL CRebuilderWindow::SetFont(HWND child, LPARAM font)
@@ -242,7 +260,7 @@ void CRebuilderWindow::SetGUIFonts()
   SetFont(m_cTopLevelTitle.GetSafeHwnd(), (LPARAM)bold);
   SetFont(m_cRunBtn.GetSafeHwnd(), (LPARAM)bold);
   SetFont(m_cKillBtn.GetSafeHwnd(), (LPARAM)bold);
-  SetFont(m_cPatchTitle.GetSafeHwnd(), (LPARAM)bold);
+  SetFont(m_cTabCtrl.GetPatchTitle().GetSafeHwnd(), (LPARAM)bold);
 
   // Create link variant for subtitle
   lf.lfWeight = FW_NORMAL;
@@ -250,6 +268,7 @@ void CRebuilderWindow::SetGUIFonts()
 
   HFONT link = CreateFontIndirect(&lf);
   SetFont(m_cTopLevelSubtitle.GetSafeHwnd(), (LPARAM)link);
+  SetFont(m_cTabCtrl.GetMusicLink().GetSafeHwnd(), (LPARAM)link);
 
   // While here, get height of font for layout purposes
   HDC hDC = ::GetDC(NULL);
@@ -278,5 +297,5 @@ BEGIN_MESSAGE_MAP(CRebuilderWindow, super)
   ON_BN_CLICKED(ID_RUN, OnRunClick)
   ON_BN_CLICKED(ID_KILL, OnKillClick)
   ON_BN_CLICKED(ID_SUBTITLE, OnSubtitleClick)
-  ON_MESSAGE(WM_PG_SELECTIONCHANGED, OnGridSelChange)
+  ON_NOTIFY(TCN_SELCHANGE, ID_TABCTRL, OnTabSelChange)
 END_MESSAGE_MAP()

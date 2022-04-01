@@ -43,6 +43,8 @@ add_executable(Rebuilder WIN32
   src/launcher.h
   src/patchgrid.cpp
   src/patchgrid.h
+  src/tabs.cpp
+  src/tabs.h
   src/window.cpp
   src/window.h
 )

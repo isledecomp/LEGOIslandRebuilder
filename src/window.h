@@ -7,6 +7,7 @@
 
 #include "clinkstatic.h"
 #include "patchgrid.h"
+#include "tabs.h"
 
 class CRebuilderWindow : public CFrameWnd
 {
@@ -25,7 +26,7 @@ public:
 
   afx_msg void OnGetMinMaxInfo(MINMAXINFO *info);
 
-  afx_msg LRESULT OnGridSelChange(WPARAM, LPARAM);
+  afx_msg void OnTabSelChange(NMHDR* pNMHDR, LRESULT* pResult);
 
   static BOOL CALLBACK SetFont(HWND child, LPARAM font);
 
@@ -41,11 +42,14 @@ private:
   enum {
     ID_RUN = 1000,
     ID_KILL,
+    ID_TABCTRL,
     ID_SUBTITLE,
-    ID_PATCHGRID,
-    ID_PATCHTITLE,
-    ID_PATCHDESC,
     ID_COUNT
+  };
+
+  enum Tab {
+    TAB_PATCHES,
+    TAB_MUSIC
   };
 
   UINT m_nFontHeight;
@@ -53,12 +57,10 @@ private:
   CStatic m_cTopLevelTitle;
   CLinkStatic m_cTopLevelSubtitle;
 
+  TabCtrl m_cTabCtrl;
+
   CButton m_cRunBtn;
   CButton m_cKillBtn;
-
-  PatchGrid m_cPatchGrid;
-  CStatic m_cPatchTitle;
-  CStatic m_cPatchDesc;
 
   std::vector<HANDLE> m_lProcesses;
 

@@ -36,7 +36,6 @@ CLinkStatic::CLinkStatic()
 
 BOOL CLinkStatic::OnSetCursor(CWnd *pWnd, UINT nHitTest, UINT message)
 {
-
   ::SetCursor(m_hPointHand);
   return TRUE;
 }
@@ -49,7 +48,13 @@ HBRUSH CLinkStatic::CtlColor(CDC *pDC, UINT nCtlColor)
   return (HBRUSH) GetStockObject(NULL_BRUSH);
 }
 
+BOOL CLinkStatic::OnEraseBkgnd(CDC*)
+{
+  return TRUE;
+}
+
 BEGIN_MESSAGE_MAP(CLinkStatic, super)
   ON_WM_SETCURSOR()
   ON_WM_CTLCOLOR_REFLECT()
+  ON_WM_ERASEBKGND()
 END_MESSAGE_MAP()
