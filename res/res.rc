@@ -6,14 +6,5 @@ IDI_ICON1 ICON DISCARDABLE "mama.ico"
 // Manifest to enable visual styles
 1 RC_MANIFEST "res.manifest"
 
-// String table
-STRINGTABLE
-BEGIN
-  IDS_TITLE     "LEGO Island Rebuilder"
-  IDS_SUBTITLE  "by MattKC (mattkc.com)"
-  IDS_RUN       "Run"
-  IDS_KILL      "Kill"
-END
-
 // Include worker DLL in executable for better portability
 WORKER_DLL RCDATA "rebld.dll"

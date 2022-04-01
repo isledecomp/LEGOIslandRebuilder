@@ -19,7 +19,7 @@ HANDLE Launcher::Launch(HWND parent)
   // Extract REBLD.DLL which contains our patches
   TCHAR libraryFile[MAX_PATH];
   if (!ExtractLibrary(libraryFile, MAX_PATH)) {
-    MessageBox(parent, _T("Failed to extract to temp"), NULL, 0);
+    MessageBox(parent, "Failed to extract to temp", NULL, 0);
     return NULL;
   }
 
@@ -70,13 +70,13 @@ HANDLE Launcher::Launch(HWND parent)
     // Copy ISLE to temp
     TCHAR copiedFile[MAX_PATH];
     if (!CopyIsleToTemp(filename, copiedFile)) {
-      MessageBox(parent, _T("Failed to copy to temp"), NULL, 0);
+      MessageBox(parent, "Failed to copy to temp", NULL, 0);
       return NULL;
     }
 
     // Patch our copied ISLE to import our DLL
     if (!PatchIsle(copiedFile)) {
-      MessageBox(parent, _T("Failed to patch import"), NULL, 0);
+      MessageBox(parent, "Failed to patch import", NULL, 0);
       return NULL;
     }
 
@@ -100,14 +100,14 @@ BOOL Launcher::FindInstallation(HWND parent, LPTSTR str)
 
   // On install, LEGO Island records its installation directory in the registry
   HKEY hKey;
-  if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, _T("SOFTWARE\\Mindscape\\LEGO Island"), 0, KEY_QUERY_VALUE, &hKey) == ERROR_SUCCESS) {
-    LONG ret = RegQueryValueEx(hKey, _T("diskpath"), NULL, NULL, NULL, &value_sz);
+  if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, "SOFTWARE\\Mindscape\\LEGO Island", 0, KEY_QUERY_VALUE, &hKey) == ERROR_SUCCESS) {
+    LONG ret = RegQueryValueEx(hKey, "diskpath", NULL, NULL, NULL, &value_sz);
     if (ret == ERROR_SUCCESS) {
       // Get value from registry
-      RegQueryValueEx(hKey, _T("diskpath"), NULL, NULL, (BYTE*)str, &value_sz);
+      RegQueryValueEx(hKey, "diskpath", NULL, NULL, (BYTE*)str, &value_sz);
 
       // Append ISLE.EXE to diskpath
-      _tcscat(str, _T("\\ISLE.EXE"));
+      _tcscat(str, "\\ISLE.EXE");
     }
 
     RegCloseKey(hKey);
@@ -124,8 +124,8 @@ BOOL Launcher::FindInstallation(HWND parent, LPTSTR str)
     fn.lpstrFile[0] = '\0';
     fn.nMaxFile = MAX_PATH;
     fn.Flags = OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
-    fn.lpstrTitle = _T("Where is LEGO Island installed?");
-    fn.lpstrFilter = _T("ISLE.EXE\0ISLE.EXE\0");
+    fn.lpstrTitle = "Where is LEGO Island installed?";
+    fn.lpstrFilter = "ISLE.EXE\0ISLE.EXE\0";
 
     if (!GetOpenFileName(&fn)) {
       // If they cancelled the dialog, break out of the loop
@@ -144,7 +144,7 @@ BOOL Launcher::ExtractLibrary(LPTSTR str, SIZE_T len)
     return FALSE;
   }
 
-  _tcscat(str, _T("REBLD.DLL"));
+  _tcscat(str, "REBLD.DLL");
 
   // Open file
   HANDLE file = CreateFile(str, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -185,7 +185,7 @@ BOOL Launcher::CopyIsleToTemp(LPCTSTR src, LPTSTR dst)
   TCHAR tempDir[MAX_PATH];
   if (GetTempPath(MAX_PATH, tempDir)) {
     _tcscpy(dst, tempDir);
-    _tcscat(dst, _T("ISLE.EXE"));
+    _tcscat(dst, "ISLE.EXE");
     if (CopyFile(src, dst, FALSE)) {
       // Force our copy to load our DLL
       success = TRUE;
@@ -255,7 +255,7 @@ BOOL Launcher::TryCreateProcess(HWND parent, LPSTR filename, LPCSTR working_dir,
 
   if (!CreateProcess(NULL, filename, NULL, NULL, FALSE, suspended ? CREATE_SUSPENDED : 0, NULL, working_dir, &si, pi)) {
     TCHAR err[2048];
-    _stprintf(err, _T("Failed to create process with error 0x%lx"), GetLastError());
+    _stprintf(err, "Failed to create process with error 0x%lx", GetLastError());
     MessageBox(parent, err, NULL, 0);
     return FALSE;
   }

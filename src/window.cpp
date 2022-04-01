@@ -23,17 +23,19 @@ CRebuilderWindow::CRebuilderWindow()
   LPCTSTR wndclass = AfxRegisterWndClass(CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW,
                                          LoadCursor(NULL, IDC_ARROW),
                                          (HBRUSH) COLOR_WINDOW,
-                                         LoadIcon(AfxGetInstanceHandle(), _T("IDI_ICON1")));
+                                         LoadIcon(AfxGetInstanceHandle(), "IDI_ICON1"));
+
+  const char *title = "LEGO Island Rebuilder";
 
   // Create form
-  CreateEx(WS_EX_OVERLAPPEDWINDOW, wndclass, GetResourceString(IDS_TITLE), WS_OVERLAPPEDWINDOW, 0, 0, 0, 0, NULL, NULL);
+  CreateEx(WS_EX_OVERLAPPEDWINDOW, wndclass, title, WS_OVERLAPPEDWINDOW, 0, 0, 0, 0, NULL, NULL);
   ModifyStyleEx(WS_EX_CLIENTEDGE, 0, 0);
 
   // Create title
-  m_cTopLevelTitle.Create(GetResourceString(IDS_TITLE), WS_CHILD | WS_VISIBLE | SS_CENTER, CRect(), this);
+  m_cTopLevelTitle.Create(title, WS_CHILD | WS_VISIBLE | SS_CENTER, CRect(), this);
 
   // Create subtitle
-  m_cTopLevelSubtitle.Create(GetResourceString(IDS_SUBTITLE), WS_CHILD | WS_VISIBLE | SS_CENTER | SS_NOTIFY, CRect(), this, ID_SUBTITLE);
+  m_cTopLevelSubtitle.Create("by MattKC and Ramen2X", WS_CHILD | WS_VISIBLE | SS_CENTER | SS_NOTIFY, CRect(), this, ID_SUBTITLE);
 
   // Initialize common TCITEM
   TCITEM tabItem;
@@ -44,15 +46,15 @@ CRebuilderWindow::CRebuilderWindow()
   delete [] tabItem.pszText;
 
   // Create property grid
-  m_cPatchGrid.Create(AfxRegisterWndClass(CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW), _T("Patch Grid"), WS_CHILD | WS_VISIBLE, CRect(), this, ID_PATCHGRID);
+  m_cPatchGrid.Create(AfxRegisterWndClass(CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW), "Patch Grid", WS_CHILD | WS_VISIBLE, CRect(), this, ID_PATCHGRID);
   m_cPatchTitle.Create(CString(), WS_CHILD | WS_VISIBLE, CRect(), this, ID_PATCHTITLE);
   m_cPatchDesc.Create(CString(), WS_CHILD | WS_VISIBLE, CRect(), this, ID_PATCHDESC);
 
   // Create run button
-  m_cRunBtn.Create(GetResourceString(IDS_RUN), WS_CHILD | WS_VISIBLE, CRect(), this, ID_RUN);
+  m_cRunBtn.Create("Run", WS_CHILD | WS_VISIBLE, CRect(), this, ID_RUN);
 
   // Create run button
-  m_cKillBtn.Create(GetResourceString(IDS_KILL), WS_CHILD, CRect(), this, ID_KILL);
+  m_cKillBtn.Create("Kill", WS_CHILD, CRect(), this, ID_KILL);
 
   // Set fonts
   SetGUIFonts();
@@ -96,10 +98,10 @@ BOOL CRebuilderWindow::TrySaving()
     if (m_cPatchGrid.SaveConfiguration(configPath)) {
       return TRUE;
     } else {
-      MessageBox(_T("Failed to save configuration file."));
+      MessageBox("Failed to save configuration file.");
     }
   } else {
-    MessageBox(_T("Failed to determine configuration path."));
+    MessageBox("Failed to determine configuration path.");
   }
 
   return FALSE;
@@ -131,7 +133,7 @@ void CRebuilderWindow::OnKillClick()
 
 void CRebuilderWindow::OnSubtitleClick()
 {
-  ShellExecute(NULL, _T("open"), _T("https://mattkc.com/"), NULL, NULL, SW_SHOWNORMAL);
+  ShellExecute(NULL, "open", "https://legoisland.org/", NULL, NULL, SW_SHOWNORMAL);
 }
 
 void CRebuilderWindow::OnSize(UINT type, int width, int height)
@@ -148,7 +150,7 @@ void CRebuilderWindow::OnSize(UINT type, int width, int height)
   m_cTopLevelTitle.SetWindowPos(NULL, 0, y, width, h, 0);
 
   y += h;
-  h = m_nFontHeight;
+  h = m_nFontHeight*1;
 
   m_cTopLevelSubtitle.SetWindowPos(NULL, 0, y, width, h, 0);
 
