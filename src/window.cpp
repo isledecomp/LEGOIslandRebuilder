@@ -176,8 +176,8 @@ void CRebuilderWindow::OnSize(UINT type, int width, int height)
 
   int w = inner.right - inner.left;
 
-  h = m_nFontHeight*4;
-  int patchDescY = inner.bottom - h;
+  h = m_nFontHeight*5;
+  int patchDescY = inner.bottom - h - padding;
   m_cTabCtrl.GetPatchDesc().SetWindowPos(NULL, inner.left, patchDescY, w, h, 0);
 
   h = m_nFontHeight;
@@ -185,7 +185,7 @@ void CRebuilderWindow::OnSize(UINT type, int width, int height)
   m_cTabCtrl.GetPatchTitle().SetWindowPos(NULL, inner.left, patchDescY, w, h, 0);
 
   // Consume remaining space with patch grid
-  h = patchDescY - inner.top;
+  h = patchDescY - inner.top - padding;
   m_cTabCtrl.GetPatchGrid().SetWindowPos(NULL, inner.left, inner.top, w, h, 0);
 
   h = inner.bottom - inner.top;
