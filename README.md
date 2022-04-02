@@ -46,30 +46,25 @@ The latest binaries are available on the [releases page](https://github.com/itsm
 
 ## Building
 
-Rebuilder utilizes the [CMake](https://cmake.org/download/) build system. Ensure that it is installed before proceeding with the compilation.
-
-Compilation is currently broken with build systems other than [Ninja](https://ninja-build.org/), so it must be installed until this is addressed.
-
-In order to retain compatibility with Windows 95, Rebuilder is compiled using MSVC 6.0.* For convenience and compatibility, a portable version of MSVC 6.0 is available [here](https://github.com/itsmattkc/MSVC600). Its command line can be accessed by running `VC98/bin/VCVARS32.BAT` from any normal command prompt. 
+Rebuilder utilizes the NMake build system included with Microsoft Visual C++. In order to retain compatibility with Windows 95, Rebuilder is written specifically for MSVC 6.0.* For convenience and compatibility, a portable version of MSVC 6.0 is available [here](https://github.com/itsmattkc/MSVC600). Its command line can be accessed by running `VC98/bin/VCVARS32.BAT` from any normal command prompt. 
 
 Using the MSVC command line:
 
 ```bash
-# Clone this repository and enter it
+# Clone this repository
 $ git clone https://github.com/itsmattkc/LEGOIslandRebuilder
 
+# Enter the directory
 $ cd LEGOIslandRebuilder
 
-# Create build directory and enter it
-$ mkdir build
-
-$ cd build
-
-# Generate the build files
-$ cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..
-
 # Build the program
-$ ninja
+$ nmake
+```
+
+To clean the source tree of build files, the following command can be used:
+
+```bash
+$ nmake clean
 ```
 
 <i>Note: For unknown reasons, the text rendering may break after recompilation. To fix this, you will need to perform a clean build.</i>

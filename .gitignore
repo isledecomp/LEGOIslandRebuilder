@@ -1,2 +1,8 @@
 build*
 *.user
+*.obj
+*.dll
+*.exp
+*.lib
+*.exe
+*.res

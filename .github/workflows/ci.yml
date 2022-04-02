@@ -32,19 +32,13 @@ jobs:
       shell: cmd
       run: |
         call MSVC600/VC98/Bin/vcvars32.bat
-        mkdir build
-        cd build
-        curl -fLOSs https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-win.zip
-        7z x ninja-win.zip
-        set PATH=%PATH%;%CD%
-        cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release
-        ninja
+        nmake
 
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v2.2.1
       with:
         path:
-          build/Rebuilder.exe
+          Rebuilder.exe
 
     - name: Upload to Releases
       shell: bash
@@ -55,4 +49,4 @@ jobs:
         TRAVIS_COMMIT: ${{ github.sha }}
       run: |
         curl -fLOSs --retry 2 --retry-delay 60 https://github.com/probonopd/uploadtool/raw/master/upload.sh
-        ./upload.sh build/Rebuilder.exe
+        ./upload.sh Rebuilder.exe
