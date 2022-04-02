@@ -36,6 +36,7 @@ jobs:
         cd build
         curl -fLOSs https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-win.zip
         7z x ninja-win.zip
+        set PATH=%PATH%;%CD%
         cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release
         ninja
 
