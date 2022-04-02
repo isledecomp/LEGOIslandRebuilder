@@ -48,7 +48,7 @@ LRESULT TabCtrl::OnGridSelChange(WPARAM wParam, LPARAM lParam)
 
 void TabCtrl::OnMusicLinkClick()
 {
-  ShellExecute(NULL, _T("open"), _T("http://github.com/itsmattkc/LEGOIslandRebuilder/releases"), NULL, NULL, SW_SHOWNORMAL);
+  ShellExecute(NULL, _T("open"), _T("https://github.com/itsmattkc/LEGOIslandRebuilder/releases/tag/lastnet"), NULL, NULL, SW_SHOWNORMAL);
 }
 
 BEGIN_MESSAGE_MAP(TabCtrl, CTabCtrl)
