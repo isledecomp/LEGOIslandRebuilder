@@ -34,6 +34,8 @@ jobs:
         call MSVC600/VC98/Bin/vcvars32.bat
         mkdir build
         cd build
+        curl -fLOSs https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-win.zip
+        7z x ninja-win.zip
         cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release
         ninja
 
