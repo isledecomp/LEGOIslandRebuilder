@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - 'README.md'
+  pull_request:
+    branches:
+      - master
+    paths-ignore:
+      - 'README.md'
+
+jobs:
+
+  build:
+
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Install Visual C++ 6.0
+      shell: cmd
+      run: |
+        git clone https://github.com/itsmattkc/MSVC600
+
+    - name: Build
+      run: |
+        call MSVC600/VC98/Bin/vcvars32.bat
+        mkdir build
+        cd build
+        cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release
+        ninja
+
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v2.2.1
+      with:
+        path:
+          build/Rebuilder.exe
+
+    - name: Upload to Releases
+      shell: bash
+      if: github.event_name == 'push'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TRAVIS_REPO_SLUG: itsmattkc/LEGOIslandRebuilder
+        TRAVIS_COMMIT: ${{ github.sha }}
+      run: |
+        curl -fLOSs --retry 2 --retry-delay 60 https://github.com/probonopd/uploadtool/raw/master/upload.sh
+        ./upload.sh build/Rebuilder.exe
