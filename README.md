@@ -67,8 +67,6 @@ To clean the source tree of build files, the following command can be used:
 $ nmake clean
 ```
 
-<i>Note: For unknown reasons, the text rendering may break after recompilation. To fix this, you will need to perform a clean build.</i>
-
 <sub>*While using a modern compiler for building is possible, there are no guarantees that Rebuilder will continue to function on older operating systems.</sub>
 
 ## Usage
