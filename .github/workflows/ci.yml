@@ -25,11 +25,11 @@ jobs:
         fetch-depth: 0
 
     - name: Install Visual C++ 6.0
-      shell: cmd
       run: |
         git clone https://github.com/itsmattkc/MSVC600
 
     - name: Build
+      shell: cmd
       run: |
         call MSVC600/VC98/Bin/vcvars32.bat
         mkdir build
