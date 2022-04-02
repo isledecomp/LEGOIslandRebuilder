@@ -1,7 +1,7 @@
 
 <h1 align="center">
   <br>
-  <img src="https://raw.githubusercontent.com/itsmattkc/LEGOIslandRebuilder/mfc/res/mama.ico" alt="LEGO Island Rebuilder" width="35" align="top">
+  <img src="./res/mama.ico" alt="LEGO Island Rebuilder" width="35" align="top">
   <b>LEGO Island Rebuilder</b>
   <br>
 </h1>
@@ -13,6 +13,8 @@
     <img src="https://img.shields.io/badge/patreon-donate-yellow.svg">
   </a>
     <img src="https://img.shields.io/github/stars/itsmattkc/legoislandrebuilder.svg">
+  </a>
+    <img src="https://img.shields.io/github/workflow/status/itsmattkc/legoislandrebuilder/CI">
 </p>
 
 <p align="center">
