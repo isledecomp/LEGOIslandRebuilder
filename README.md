@@ -44,6 +44,8 @@ Rebuilder currently supports [all known versions of LEGO Island](https://www.leg
 
 The latest binaries are available on the [releases page](https://github.com/itsmattkc/LEGOIslandRebuilder/releases/tag/continuous).
 
+**Note:** Due to conflicting versions of MFC, Rebuilder will currently not function if placed in the same directory as LEGO Island.
+
 ## Building
 
 Rebuilder utilizes the NMake build system included with Microsoft Visual C++. In order to retain compatibility with Windows 95, Rebuilder is written specifically for MSVC 6.0.* For convenience and compatibility, a portable version of MSVC 6.0 is available [here](https://github.com/itsmattkc/MSVC600). Its command line can be accessed by running `VC98/bin/VCVARS32.BAT` from any normal command prompt. 
