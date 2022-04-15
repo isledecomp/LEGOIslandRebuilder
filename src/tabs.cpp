@@ -4,8 +4,8 @@ void TabCtrl::CreateChildren()
 {
   // Create property grid
   m_cPatchGrid.Create(AfxRegisterWndClass(CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW), "Patch Grid", WS_CHILD | WS_VISIBLE, CRect(), this, ID_PATCHGRID);
-  m_cPatchTitle.Create(CString(), WS_CHILD | WS_VISIBLE, CRect(), this, ID_PATCHTITLE);
-  m_cPatchDesc.Create(CString(), WS_CHILD | WS_VISIBLE, CRect(), this, ID_PATCHDESC);
+  m_cPatchTitle.Create(CString("Welcome to LEGO Island Rebuilder"), WS_CHILD | WS_VISIBLE, CRect(), this, ID_PATCHTITLE);
+  m_cPatchDesc.Create(CString("Select a patch to get started."), WS_CHILD | WS_VISIBLE, CRect(), this, ID_PATCHDESC);
 
   m_cMusicLink.Create("Coming back soon. If you need music replacement, download the old .NET version here.",
                       WS_CHILD | SS_CENTER | SS_NOTIFY, CRect(), this, ID_MUSICLINK);
