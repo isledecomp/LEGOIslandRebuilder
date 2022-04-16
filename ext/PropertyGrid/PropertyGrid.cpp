@@ -1801,6 +1801,7 @@ void CPropertyGrid::FocusNextItem()
 {
   // simple move forward
   MoveForward(m_focused_section, m_focused_item);
+  GetOwner()->SendMessage(WM_PG_SELECTIONCHANGED, m_focused_item);
 
   // ensure visible
   CRect rc(0,0,0,0);
