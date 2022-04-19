@@ -64,6 +64,8 @@ msdev Rebuilder.dsw /make
 
 (Replace `<MSVC600 directory>` with the directory you installed/cloned MSVC 6.0 to)
 
+Rebuilder can only be built in "Release" mode. This is because it utilizes DLL injection to modify LEGO Island in memory, and with MSVC, "Debug" code is incompatible with "Release" code (which is what LEGO Island was naturally compiled as).
+
 ## Usage
 
 By default, Rebuilder opens a graphical interface which can be used to set the patch configuration and to launch the game. However, command line arguments are also supported:
