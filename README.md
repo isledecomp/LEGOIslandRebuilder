@@ -48,28 +48,21 @@ The latest binaries are available on the [releases page](https://github.com/itsm
 
 ## Building
 
-Rebuilder utilizes the NMake build system included with Microsoft Visual C++. In order to retain compatibility with Windows 95, Rebuilder is written specifically for MSVC 6.0.* For convenience and compatibility, a portable version of MSVC 6.0 is available [here](https://github.com/itsmattkc/MSVC600). Its command line can be accessed by running `VC98/bin/VCVARS32.BAT` from any normal command prompt. 
+LEGO Island Rebuilder specifically targets Microsoft Visual C++ 6.0 in order to retain compatibility with Windows 95. It is highly recommended to use this compiler at all times, as code written for newer compilers may not be compatible with this version.
 
-Using the MSVC command line:
+Rebuilder can be built with the standard Visual C++ 6.0 IDE. Since the MSVC 6.0 installer is known to have issues on newer versions of Windows, a portable version of MSVC 6.0 is available [here](https://github.com/itsmattkc/MSVC600).
 
-```bash
-# Clone this repository
-$ git clone https://github.com/itsmattkc/LEGOIslandRebuilder
+Since the IDE is old and somewhat archaic, you may wish to use a more modern IDE/code editor. This can be done by using the following commands as your build step in the IDE of your choice:
 
-# Enter the directory
-$ cd LEGOIslandRebuilder
+```
+# Enter Visual C++ 6.0 build environment
+<MSVC600 directory>/VC98/bin/VCVARS32.BAT
 
-# Build the program
-$ nmake
+# Build the project
+msdev Rebuilder.dsw /make
 ```
 
-To clean the source tree of build files, the following command can be used:
-
-```bash
-$ nmake clean
-```
-
-<sub>*While using a modern compiler for building is possible, there are no guarantees that Rebuilder will continue to function on older operating systems.</sub>
+(Replace `<MSVC600 directory>` with the directory you installed/cloned MSVC 6.0 to)
 
 ## Usage
 
