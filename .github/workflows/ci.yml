@@ -32,13 +32,13 @@ jobs:
       shell: cmd
       run: |
         call MSVC600/VC98/Bin/vcvars32.bat
-        nmake
+        msdev Rebuilder.dsw /make
 
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v2.2.1
       with:
         path:
-          Rebuilder.exe
+          Rebuilder/Release/Rebuilder.exe
 
     - name: Upload to Releases
       shell: bash
@@ -49,4 +49,4 @@ jobs:
         TRAVIS_COMMIT: ${{ github.sha }}
       run: |
         curl -fLOSs --retry 2 --retry-delay 60 https://github.com/probonopd/uploadtool/raw/master/upload.sh
-        ./upload.sh Rebuilder.exe
+        ./upload.sh Rebuilder/Release/Rebuilder.exe

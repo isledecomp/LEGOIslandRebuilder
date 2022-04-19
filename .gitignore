@@ -1,4 +1,6 @@
 build*
+Debug/
+Release/
 *.user
 *.obj
 *.dll
@@ -6,3 +8,6 @@ build*
 *.lib
 *.exe
 *.res
+*.plg
+*.ncb
+*.opt
