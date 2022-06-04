@@ -176,6 +176,16 @@ PatchGrid::PatchGrid()
            "Change LEGO Island's default model quality",
            AddComboItem(sectionGraphics, "Model Quality", qualityList, 2));
 
+  vector<string> animationList;
+  animationList.push_back("No Animation");
+  animationList.push_back("Dissolve");
+  animationList.push_back("Pixelation");
+  animationList.push_back("Vertical Wipe");
+  animationList.push_back("Window");
+  AddPatch("TransitionType",
+           "Change LEGO Island's transition animation.",
+           AddComboItem(sectionGraphics, "Transition Type", animationList, 2));
+
   AddPatch("FOVMultiplier",
            "Globally adjusts the field of view by a multiplier\n\n"
            "1.0 = Default (greater than 1.0 is zoomed in, less than 1.0 is zoomed out)",

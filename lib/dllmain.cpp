@@ -155,6 +155,28 @@ DWORD WINAPI Patch()
   memcpy(mq_replace+4, &mq_val, sizeof(mq_val));
   SearchReplacePattern(dllBase, mq_pattern, mq_replace, 8);
 
+  // Transition Animation
+  std::string animation_type = config.GetString("TransitionType");
+  int anim_val = 3;
+  if (animation_type == "No Animation") {
+    anim_val = 1;
+  } else if (animation_type == "Dissolve") {
+    anim_val = 2;
+  } else if (animation_type == "Pixelation") {
+    anim_val = 3;
+  } else if (animation_type == "Vertical Wipe") {
+    anim_val = 4;
+  } else if (animation_type == "Window") {
+    anim_val = 5;
+  }
+  const char *at_pattern = "\x89\x46\x2C\x8A\x44\x24\x14\x32\xC1\x24\x01\x32\xC1";
+  char at_replace[13];
+  memcpy(at_replace, at_pattern, 13);
+  memcpy(at_replace, "\xC7", 1);
+  memcpy(at_replace+3, &anim_val, sizeof(anim_val));
+  memcpy(at_replace+11, "\xB0\x00", 2);
+  SearchReplacePattern(dllBase, at_pattern, at_replace, 13);
+
   // Field of view
   const char *fov_pattern = "\x00\x00\x00\x3F\x17\x6C\xC1\x16\x6C\xC1\x76\x3F";
   char fov_replace[12];
