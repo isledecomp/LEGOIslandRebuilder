@@ -26,7 +26,7 @@ jobs:
 
     - name: Install Visual C++ 6.0
       run: |
-        git clone https://github.com/itsmattkc/MSVC600
+        git clone --depth 1 https://github.com/itsmattkc/MSVC600
 
     - name: Build
       shell: cmd
