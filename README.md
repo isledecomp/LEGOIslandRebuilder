@@ -44,8 +44,6 @@ Rebuilder currently supports [all known versions of LEGO Island](https://www.leg
 
 The latest binaries are available on the [releases page](https://github.com/itsmattkc/LEGOIslandRebuilder/releases/tag/continuous).
 
-**Note:** Due to conflicting versions of MFC, Rebuilder will currently not function if placed in the same directory as LEGO Island.
-
 ## Building
 
 LEGO Island Rebuilder specifically targets Microsoft Visual C++ 6.0 in order to retain compatibility with Windows 95. It is highly recommended to use this compiler at all times, as code written for newer compilers may not be compatible with this version.
