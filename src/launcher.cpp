@@ -14,6 +14,26 @@ HANDLE Launcher::Launch(HWND parent)
     return NULL;
   }
 
+  // Set compatibility flags
+  HKEY hKey;
+  LPCTSTR str = TEXT("~ HIGHDPIAWARE 16BITCOLOR DWM8And16BitMitigation");
+  if (RegOpenKeyEx(HKEY_CURRENT_USER, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers", 0, KEY_SET_VALUE, &hKey) == ERROR_SUCCESS) {
+    // Often we seem to get an 8.3 path which is not valid here, so resolve the full path now
+    TCHAR full_path[MAX_PATH];
+    GetLongPathName(filename, full_path, MAX_PATH);
+    MessageBoxA(0,full_path,0,0);
+
+    LONG ret = RegSetValueEx(hKey, full_path, 0, REG_SZ, (const BYTE *) str, strlen(str)+1);
+    if (ret != ERROR_SUCCESS) {
+      char buf[100];
+      sprintf(buf, "Failed to set compatibility flags: 0x%x. This may cause issues on newer versions of Windows.", ret);
+      MessageBox(parent, buf, 0, 0);
+    }
+
+    RegCloseKey(hKey);
+  }
+
+
   // Extract REBLD.DLL which contains our patches
   TCHAR libraryFile[MAX_PATH];
   if (!ExtractLibrary(libraryFile, MAX_PATH)) {
