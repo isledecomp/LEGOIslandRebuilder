@@ -73,11 +73,7 @@ By default, Rebuilder opens a graphical interface which can be used to set the p
 
 ### Linux and macOS
 
-Rebuilder works on non-Windows platforms using Wine.
-
-It is important to note that mfc42 must be installed before using Wine with Rebuilder. This can be done using `winetricks mfc42`.
-
-After the installation is complete, simply run Rebuilder with Wine using `wine Rebuilder.exe`.
+Rebuilder works on non-Windows platforms using Wine. Ensure LEGO Island is installed into the same prefix you're running Rebuilder in, and it should work identically to Windows.
 
 ## Contributing
 
