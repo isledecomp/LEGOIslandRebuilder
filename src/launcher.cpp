@@ -5,8 +5,6 @@
 
 #include "../res/resource.h"
 
-typedef LPVOID (WINAPI *VirtualAllocEx_t)(HANDLE hProcess, LPVOID lpAddress, DWORD dwSize, DWORD flAllocationType, DWORD flProtect);
-
 HANDLE Launcher::Launch(HWND parent)
 {
   // Find the installation
@@ -34,56 +32,38 @@ HANDLE Launcher::Launch(HWND parent)
     return NULL;
   }
 
+  UINT_PTR inject_addr = 0x0040843A;
+  UINT_PTR old_addr;
+  ReadProcessMemory(pi.hProcess, (LPVOID) inject_addr, &old_addr, sizeof(UINT_PTR), NULL);
+  old_addr += inject_addr + 4;
+
+  // Set up x86 code template
+  char *inject_func = "\x68\x00\x00\x00\x00\xE8\x00\x00\x00\x00\xE9\xBA\xBA\xBA\xBA";
+  size_t inject_func_sz = 15;
+
+  // Write DLL address
+  UINT_PTR addr = (UINT_PTR) 0x0040E5D6;
+  UINT_PTR string_addr = addr + inject_func_sz;
   int dllPathLength = strlen(libraryFile) + 1;
+  WriteProcessMemory(pi.hProcess, (LPVOID) string_addr, libraryFile, dllPathLength, NULL);
 
-  LPVOID remoteDllAddress = NULL;
-  if (VirtualAllocEx_t virtualAllocEx = (VirtualAllocEx_t)GetProcAddress(GetModuleHandle(TEXT("KERNEL32.DLL")), TEXT("VirtualAllocEx"))) {
-    remoteDllAddress = virtualAllocEx(pi.hProcess, NULL, dllPathLength, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-  }
+  // Fill in addresses in code template
+  memcpy(inject_func + 1, &string_addr, sizeof(string_addr));
+  UINT_PTR loadLibrary = (UINT_PTR) GetProcAddress(GetModuleHandle("KERNEL32.DLL"), "LoadLibraryA");
+  loadLibrary -= addr + 10;
+  memcpy(inject_func + 6, &loadLibrary, sizeof(loadLibrary));
+  old_addr -= addr + 15;
+  memcpy(inject_func + 11, &old_addr, sizeof(old_addr));
 
-  if (remoteDllAddress) {
-    // For Windows NT, we can use the standard VirtualAllocEx/WriteProcessMemory/CreateRemoteThread
-    // injection system.
-    if (!WriteProcessMemory(pi.hProcess, remoteDllAddress, (LPVOID)libraryFile, dllPathLength, NULL)) {
-      MessageBox(parent, TEXT("Failed to write memory in remote process"), NULL, 0);
-      TerminateProcess(pi.hProcess, 0);
-      return NULL;
-    }
+  // Write code
+  WriteProcessMemory(pi.hProcess, (LPVOID) addr, inject_func, inject_func_sz, NULL);
 
-    DWORD thread_id;
-    HANDLE remote_thread = CreateRemoteThread(pi.hProcess, NULL, NULL, (LPTHREAD_START_ROUTINE) LoadLibrary, remoteDllAddress, NULL, &thread_id);
-    if (!remote_thread) {
-      char buf[100];
-      sprintf(buf, "Failed to create remote thread: 0x%lx", GetLastError());
-      MessageBox(parent, buf, NULL, 0);
-      TerminateProcess(pi.hProcess, 0);
-      return NULL;
-    }
+  // Replace function call
+  addr -= (UINT_PTR)(inject_addr) + 4;
+  WriteProcessMemory(pi.hProcess, (LPVOID) inject_addr, &addr, sizeof(addr), NULL);
 
-    WaitForSingleObject(remote_thread, INFINITE);
-    CloseHandle(remote_thread);
-    ResumeThread(pi.hThread);
-  } else {
-    // For Windows 9x, we wrap WINMM.DLL because 9x doesn't support VirtualAllocEx or CreateRemoteThread.
-    TerminateProcess(pi.hProcess, 0);
-
-    // Copy ISLE to temp
-    TCHAR copiedFile[MAX_PATH];
-    if (!CopyIsleToTemp(filename, copiedFile)) {
-      MessageBox(parent, "Failed to copy to temp", NULL, 0);
-      return NULL;
-    }
-
-    // Patch our copied ISLE to import our DLL
-    if (!PatchIsle(copiedFile)) {
-      MessageBox(parent, "Failed to patch import", NULL, 0);
-      return NULL;
-    }
-
-    if (!TryCreateProcess(parent, copiedFile, srcDir, FALSE, &pi)) {
-      return NULL;
-    }
-  }
+  // Resume process thread
+  ResumeThread(pi.hThread);
 
   return pi.hProcess;
 }

@@ -70,10 +70,6 @@ SOURCE=..\lib\hooks.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\lib\mmpassthru.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=..\cmn\path.cpp
 # End Source File
 # Begin Source File
