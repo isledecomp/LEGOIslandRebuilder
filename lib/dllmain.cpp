@@ -7,7 +7,7 @@
 #include "hooks.h"
 #include "util.h"
 
-DWORD WINAPI Patch()
+__declspec(dllexport) DWORD WINAPI Patch()
 {
   if (!config.Load()) {
     MessageBoxA(0, "Failed to find Rebuilder configuration. No patches will be active.", 0, 0);
