@@ -45,7 +45,6 @@ HANDLE Launcher::Launch(HWND parent)
       TCHAR full_path[MAX_PATH];
       GetLongPathName_t getLongPathName = (GetLongPathName_t) GetProcAddress(GetModuleHandle("KERNEL32.DLL"), "GetLongPathNameA");
       getLongPathName(filename, full_path, MAX_PATH);
-      MessageBoxA(0,full_path,0,0);
 
       LONG ret = RegSetValueEx(hKey, full_path, 0, REG_SZ, (const BYTE *) &compat[0], compat.size()+1);
       if (ret != ERROR_SUCCESS) {
