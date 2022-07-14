@@ -17,7 +17,19 @@ BOOL Config::Load()
 {
   // Get config file
   m_configFile.resize(MAX_PATH);
-  return GetConfigFilename(&m_configFile[0]) && PathFileExists(m_configFile.c_str());
+  if (!GetConfigFilename(&m_configFile[0])) {
+    MessageBox(0, "Failed to generate configuration filename", 0, 0);
+    return FALSE;
+  }
+
+  if (!PathFileExists(m_configFile.c_str()))   {
+    char buf[300];
+    sprintf(buf, "Failed to find configuration file \"%s\".", m_configFile.c_str());
+    MessageBox(0, buf, 0, 0);
+    return FALSE;
+  }
+
+  return TRUE;
 }
 
 UINT Config::GetInt(LPCTSTR name, UINT defaultValue)
