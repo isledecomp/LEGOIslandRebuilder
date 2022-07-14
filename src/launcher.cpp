@@ -220,22 +220,6 @@ BOOL Launcher::CopyIsleToTemp(LPCTSTR src, LPTSTR dst)
   return success;
 }
 
-BOOL Launcher::PatchIsle(LPCTSTR filename)
-{
-  BOOL success = false;
-
-  if (HANDLE file = CreateFile(filename, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, 0)) {
-    // Force ISLE to load our DLL. This system will work on all platforms including Windows 95.
-    if (ReplacePatternInFile(file, "timeGetTime\0WINMM", "rbldGetTime\0REBLD", 17)) {
-      success = true;
-    }
-
-    CloseHandle(file);
-  }
-
-  return success;
-}
-
 BOOL Launcher::ReplacePatternInFile(HANDLE file, const char *pattern, const char *replace, LONG sz)
 {
   BOOL success = FALSE;

@@ -17,8 +17,6 @@ private:
 
   static BOOL CopyIsleToTemp(LPCTSTR src, LPTSTR dst);
 
-  static BOOL PatchIsle(LPCTSTR filename);
-
   static BOOL ReplacePatternInFile(HANDLE file, const char *pattern, const char *replace, LONG sz);
 
   static BOOL TryCreateProcess(HWND parent, LPSTR filename, LPCSTR working_dir, BOOL suspended, PROCESS_INFORMATION *pi);
