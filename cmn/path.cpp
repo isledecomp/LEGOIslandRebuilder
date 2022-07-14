@@ -32,17 +32,12 @@ BOOL RecursivelyCreateDirectory(LPCTSTR directory)
 }
 
 #ifdef UNICODE
-typedef BOOL (WINAPI *SHGetSpecialFolderPathSignature)(HWND hwndOwner, LPWSTR lpszPath, int nFolder, BOOL fCreate);
+typedef BOOL (WINAPI *SHGetSpecialFolderPath_t)(HWND hwndOwner, LPWSTR lpszPath, int nFolder, BOOL fCreate);
 #else
-typedef BOOL (WINAPI *SHGetSpecialFolderPathSignature)(HWND hwndOwner, LPSTR lpszPath, int nFolder, BOOL fCreate);
+typedef BOOL (WINAPI *SHGetSpecialFolderPath_t)(HWND hwndOwner, LPSTR lpszPath, int nFolder, BOOL fCreate);
 #endif
 BOOL GetAppDataPath(LPTSTR s)
 {
-  OSVERSIONINFO info;
-  ZeroMemory(&info, sizeof(info));
-  info.dwOSVersionInfoSize = sizeof(info);
-  GetVersionEx(&info);
-
   // Dynamically link to SHGetSpecialFolderPath because not all versions of Windows have it
 #ifdef UNICODE
   LPCSTR functionName = "SHGetSpecialFolderPathW";
@@ -50,11 +45,11 @@ BOOL GetAppDataPath(LPTSTR s)
   LPCSTR functionName = "SHGetSpecialFolderPathA";
 #endif
 
-  SHGetSpecialFolderPathSignature GetSpecialFolderPath = (SHGetSpecialFolderPathSignature)GetProcAddress(GetModuleHandle(_T("SHELL32.DLL")), functionName);
+  SHGetSpecialFolderPath_t getSpecialFolderPath = (SHGetSpecialFolderPath_t)GetProcAddress(LoadLibrary(_T("SHELL32.DLL")), functionName);
   BOOL haveDir = FALSE;
   BOOL usedShell = FALSE;
-  if (GetSpecialFolderPath) {
-    haveDir = GetSpecialFolderPath(NULL, s, CSIDL_APPDATA, TRUE);
+  if (getSpecialFolderPath) {
+    haveDir = getSpecialFolderPath(NULL, s, CSIDL_APPDATA, TRUE);
     usedShell = TRUE;
   } else {
     // Assume we're on Windows 95 which has no application data folder, we bodge it to write to
@@ -64,7 +59,6 @@ BOOL GetAppDataPath(LPTSTR s)
     haveDir = TRUE;
   }
 
-  //MessageBox(0, s, usedShell ? _T("Using API") : _T("Is this Windows 95?"), 0);
   return haveDir;
 }
 
