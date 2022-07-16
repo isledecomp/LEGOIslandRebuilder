@@ -286,47 +286,64 @@ HRESULT WINAPI InterceptD3DRMDeviceUpdate(LPDIRECT3DRMDEVICE device)
   return d3drmDeviceUpdateOriginal(device);
 }
 
-/*std::map<LPDIRECT3DDEVICE, std::vector<D3DPICKRECORD> > g_PickRecords;
+std::map<LPDIRECT3DDEVICE, std::vector<D3DPICKRECORD> > g_PickRecords;
+
+void MultiplyMatrix(D3DMATRIX &c, const D3DMATRIX &a, const D3DMATRIX &b)
+{
+  c._11 = (a._11 * b._11) + (a._21 * b._12) + (a._31 * b._13) + (a._41 * b._14);
+  c._21 = (a._11 * b._21) + (a._21 * b._22) + (a._31 * b._23) + (a._41 * b._24);
+  c._31 = (a._11 * b._31) + (a._21 * b._32) + (a._31 * b._33) + (a._41 * b._34);
+  c._41 = (a._11 * b._41) + (a._21 * b._42) + (a._31 * b._43) + (a._41 * b._44);
+
+  c._12 = (a._12 * b._11) + (a._22 * b._12) + (a._32 * b._13) + (a._42 * b._14);
+  c._22 = (a._12 * b._21) + (a._22 * b._22) + (a._32 * b._23) + (a._42 * b._24);
+  c._32 = (a._12 * b._31) + (a._22 * b._32) + (a._32 * b._33) + (a._42 * b._34);
+  c._42 = (a._12 * b._41) + (a._22 * b._42) + (a._32 * b._43) + (a._42 * b._44);
+
+  c._13 = (a._13 * b._11) + (a._23 * b._12) + (a._33 * b._13) + (a._43 * b._14);
+  c._23 = (a._13 * b._21) + (a._23 * b._22) + (a._33 * b._23) + (a._43 * b._24);
+  c._33 = (a._13 * b._31) + (a._23 * b._32) + (a._33 * b._33) + (a._43 * b._34);
+  c._43 = (a._13 * b._41) + (a._23 * b._42) + (a._33 * b._43) + (a._43 * b._44);
+
+  c._14 = (a._14 * b._11) + (a._24 * b._12) + (a._34 * b._13) + (a._44 * b._14);
+  c._24 = (a._14 * b._21) + (a._24 * b._22) + (a._34 * b._23) + (a._44 * b._24);
+  c._34 = (a._14 * b._31) + (a._24 * b._32) + (a._34 * b._33) + (a._44 * b._34);
+  c._44 = (a._14 * b._41) + (a._24 * b._42) + (a._34 * b._43) + (a._44 * b._44);
+}
 
 typedef HRESULT (WINAPI *d3dimPickFunction) (LPDIRECT3DDEVICE, LPDIRECT3DEXECUTEBUFFER, LPDIRECT3DVIEWPORT, DWORD, LPD3DRECT);
 d3dimPickFunction d3dimPickOriginal = NULL;
-HRESULT WINAPI InterceptD3DIMPick(LPDIRECT3DDEVICE, LPDIRECT3DEXECUTEBUFFER buffer, LPDIRECT3DVIEWPORT, DWORD, LPD3DRECT)
+HRESULT WINAPI InterceptD3DIMPick(LPDIRECT3DDEVICE lpDevice, LPDIRECT3DEXECUTEBUFFER lpBuffer, LPDIRECT3DVIEWPORT lpViewport, DWORD, LPD3DRECT lpRect)
 {
-  D3DEXECUTEDATA data;
   D3DEXECUTEBUFFERDESC desc;
+  ZeroMemory(&desc, sizeof(D3DEXECUTEBUFFERDESC));
+  desc.dwSize = sizeof(D3DEXECUTEBUFFERDESC);
 
   HRESULT hr;
 
-  char buf[1024];
-
-  sprintf(buf, "got buffer %p", buffer);
-  MessageBoxA(0,buf,0,0);
-
-  hr = buffer->Lock(&desc);
+  hr = lpBuffer->Lock(&desc);
   if (hr != D3D_OK) {
-    sprintf(buf, "err1 %lx", hr);
-    MessageBoxA(0,buf,0,0);
     return hr;
   }
-  hr = buffer->GetExecuteData(&data);
+
+  D3DEXECUTEDATA data;
+  hr = lpBuffer->GetExecuteData(&data);
   if (hr != D3D_OK) {
-    sprintf(buf, "err2 %lx", hr);
-    MessageBoxA(0,buf,0,0);
     return hr;
   }
 
   char *instr = (char *)desc.lpData + data.dwInstructionOffset;
+  D3DVERTEX *vertex = (D3DVERTEX *) ((char *)desc.lpData + data.dwVertexOffset);
+  std::vector<D3DVERTEX> dst_buf;
+  dst_buf.resize(data.dwVertexCount);
 
-  bool exit = false;
-  while (!exit) {
-    LPD3DINSTRUCTION current = (LPD3DINSTRUCTION)instr;
+  std::vector<D3DPICKRECORD> &records = g_PickRecords[lpDevice];
+  records.clear();
+
+  LPD3DINSTRUCTION current;
+  while (current = (LPD3DINSTRUCTION)instr, current->bOpcode != D3DOP_EXIT) {
     BYTE size = current->bSize;
     WORD count = current->wCount;
-
-    sprintf(buf, "got instruction 0x%x size %u count %u\n", current->bOpcode, size, count);
-    MessageBoxA(0,buf,0,0);
-
-    break;
 
     instr += sizeof(D3DINSTRUCTION);
 
@@ -335,7 +352,43 @@ HRESULT WINAPI InterceptD3DIMPick(LPDIRECT3DDEVICE, LPDIRECT3DEXECUTEBUFFER buff
     {
       for (WORD i=0; i<count; i++) {
         D3DTRIANGLE *ci = (D3DTRIANGLE*)instr;
-        //printf("triangle %i %i %i", ci->v1, ci->v2, ci->v3);
+
+        bool inside_x = lpRect->x1 >= min(dst_buf[ci->v1].x, min(dst_buf[ci->v2].x, dst_buf[ci->v3].x)) && lpRect->x1 <= max(dst_buf[ci->v1].x, max(dst_buf[ci->v2].x, dst_buf[ci->v3].x));
+        bool inside_y = lpRect->y1 >= min(dst_buf[ci->v1].y, min(dst_buf[ci->v2].y, dst_buf[ci->v3].y)) && lpRect->y1 <= max(dst_buf[ci->v1].y, max(dst_buf[ci->v2].y, dst_buf[ci->v3].y));
+
+        if (inside_x && inside_y) {
+          D3DPICKRECORD record;
+
+          record.bOpcode = current->bOpcode;
+          record.bPad = 0;
+
+          // Write current instruction offset into file
+          record.dwOffset = (DWORD)((LPBYTE)current + sizeof(D3DINSTRUCTION) - ((LPBYTE)desc.lpData + data.dwInstructionOffset));
+
+          // Just get the center Z
+          record.dvZ = (vertex[ci->v1].z + vertex[ci->v2].z + vertex[ci->v3].z) / 3;
+
+          if (records.empty()) {
+            records.push_back(record);
+          } else if (record.dvZ > records[0].dvZ) {
+            records[0] = record;
+          }
+
+          printf("Clicked  %u,%u  %f  to  %f,%f  %f,%f  %f,%f\n",
+            lpRect->x1, lpRect->y1, record.dvZ,
+            dst_buf[ci->v1].x, dst_buf[ci->v1].y,
+            dst_buf[ci->v2].x, dst_buf[ci->v2].y,
+            dst_buf[ci->v3].x, dst_buf[ci->v3].y
+          );
+        } else {
+          /*printf("Comparing  %u,%u  to  %f,%f  %f,%f  %f,%f  failed\n",
+            lpRect->x1, lpRect->y1,
+            dst_buf[ci->v1].x, dst_buf[ci->v1].y,
+            dst_buf[ci->v2].x, dst_buf[ci->v2].y,
+            dst_buf[ci->v3].x, dst_buf[ci->v3].y
+          );*/
+        }
+
         instr += size;
       }
       break;
@@ -365,17 +418,82 @@ HRESULT WINAPI InterceptD3DIMPick(LPDIRECT3DDEVICE, LPDIRECT3DEXECUTEBUFFER buff
       }
       break;
     }
-    case D3DOP_EXIT:
-      MessageBoxA(0,"exit",0,0);
-      instr += size;
-      exit = true;
+    case D3DOP_PROCESSVERTICES:
+    {
+      LPDIRECT3DDEVICE2 d3dev2 = NULL;
+      lpDevice->QueryInterface(IID_IDirect3DDevice2, (void**) &d3dev2);
+
+      for (int i = 0; i < count; ++i) {
+        D3DPROCESSVERTICES *ci = (D3DPROCESSVERTICES*)instr;
+        DWORD op = ci->dwFlags & D3DPROCESSVERTICES_OPMASK;
+
+        switch (op) {
+        case D3DPROCESSVERTICES_TRANSFORMLIGHT:
+        case D3DPROCESSVERTICES_TRANSFORM:
+        {
+          D3DVIEWPORT vp;
+          ZeroMemory(&vp, sizeof(D3DVIEWPORT));
+          vp.dwSize = sizeof(D3DVIEWPORT);
+          lpViewport->GetViewport(&vp);
+
+          D3DMATRIX view, proj, world, mat;
+
+          d3dev2->GetTransform(D3DTRANSFORMSTATE_VIEW, &view);
+          d3dev2->GetTransform(D3DTRANSFORMSTATE_PROJECTION, &proj);
+          d3dev2->GetTransform(D3DTRANSFORMSTATE_WORLD, &world);
+
+          MultiplyMatrix(mat, view, world);
+          MultiplyMatrix(mat, proj, mat);
+
+          for (DWORD j=0; j<ci->dwCount; j++) {
+            D3DVERTEX in = vertex[ci->wStart+j];
+
+            float x, y, z, rhw;
+
+            x   = (in.x * mat._11) + (in.y * mat._21) + (in.z * mat._31) + mat._41;
+            y   = (in.x * mat._12) + (in.y * mat._22) + (in.z * mat._32) + mat._42;
+            z   = (in.x * mat._13) + (in.y * mat._23) + (in.z * mat._33) + mat._43;
+            rhw = (in.x * mat._14) + (in.y * mat._24) + (in.z * mat._34) + mat._44;
+
+            x /= rhw;
+            y /= rhw;
+            z /= rhw;
+
+            y *= -1;
+
+            x *= vp.dwWidth / 2;
+            y *= vp.dwHeight / 2;
+            z *= vp.dvMaxZ - vp.dvMinZ;
+
+            x += vp.dwWidth / 2 + vp.dwX;
+            y += vp.dwHeight / 2 + vp.dwY;
+            z += vp.dvMinZ;
+
+            D3DVERTEX &out = dst_buf[ci->wDest+j];
+            out = in;
+            out.x = x;
+            out.y = y;
+            out.z = z;
+          }
+          break;
+        }
+        default:
+          MessageBoxA(0,"unhandled processvertices op",0,0);
+          break;
+        }
+
+        instr += size;
+      }
       break;
+    }
     default:
+      printf("unhandled op: %lx\n", current->bOpcode);
       instr += size * count;
+      break;
     }
   }
 
-  buffer->Unlock();
+  lpBuffer->Unlock();
 
   return D3D_OK;
 }
@@ -389,15 +507,14 @@ HRESULT WINAPI InterceptD3DIMGetPickRecords(LPDIRECT3DDEVICE lpDevice, LPDWORD d
     return DDERR_INVALIDPARAMS;
   }
 
-  if (*dwCount && lpRecords) {
-    LPD3DPICKRECORD our_records = &g_PickRecords[lpDevice][0];
-    memcpy(lpRecords, our_records, *dwCount * sizeof(D3DPICKRECORD));
+  std::vector<D3DPICKRECORD> &records = g_PickRecords[lpDevice];
+  if (lpRecords && *dwCount >= records.size()) {
+    memcpy(lpRecords, &records[0], records.size() * sizeof(D3DPICKRECORD));
   }
-
-  *dwCount = g_PickRecords.size();
+  *dwCount = records.size();
 
   return D3D_OK;
-}*/
+}
 
 LPDIRECT3DRMDEVICE d3drm_device = NULL;
 
@@ -408,13 +525,20 @@ HRESULT WINAPI InterceptD3DRMCreateViewport(LPDIRECT3DRM d3drm, LPDIRECT3DRMDEVI
   HRESULT res = d3drmCreateViewportOriginal(d3drm, device, frame, x, y, w, h, viewport);
 
   d3drm_device = device;
-  /*if (!d3dimPickOriginal) {
-    LPDIRECT3DDEVICE d3dim_device;
-    if (d3drm_device->GetDirect3DDevice(&d3dim_device) == D3D_OK) {
-      d3dimPickOriginal = (d3dimPickFunction)OverwriteVirtualTable(d3dim_device, 12, (LPVOID)InterceptD3DIMPick);
-      d3dimGetPickRecordsOriginal = (d3dimGetPickRecordsFunction)OverwriteVirtualTable(d3dim_device, 13, (LPVOID)InterceptD3DIMGetPickRecords);
+
+  // Check if we're running on Wine, in which case we'll override Pick() and GetPickRecords()
+  if (HMODULE ntdll = GetModuleHandle("NTDLL.DLL")) {
+    if (GetProcAddress(ntdll, "wine_get_version")) {
+      // We're officially running on Wine
+      if (!d3dimPickOriginal) {
+        LPDIRECT3DDEVICE d3dim_device;
+        if (d3drm_device->GetDirect3DDevice(&d3dim_device) == D3D_OK) {
+          d3dimPickOriginal = (d3dimPickFunction)OverwriteVirtualTable(d3dim_device, 12, (LPVOID)InterceptD3DIMPick);
+          d3dimGetPickRecordsOriginal = (d3dimGetPickRecordsFunction)OverwriteVirtualTable(d3dim_device, 13, (LPVOID)InterceptD3DIMGetPickRecords);
+        }
+      }
     }
-  }*/
+  }
 
   if (res == DD_OK) {
     if (!d3drmDeviceUpdateOriginal) {
