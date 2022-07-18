@@ -76,6 +76,13 @@ __declspec(dllexport) DWORD WINAPI Patch()
     SearchReplacePattern(dllBase, dbg_map_pattern, dbg_map_replace, 48, TRUE);
   }
 
+  // Exit crash fix
+  if (config.GetInt(_T("ExitCrashFix"))) {
+    const char *exit_pattern = "\x50\x52\x51\x8B\x01\xFF\x50\x2C\x85\xC0\x75\x67\x8B\x7C\x24\x14\x8B\x74\x24\x30\x8B\xCB\xC1\xE9\x02\xF3\xA5\x8B\xCB\x83\xE1\x03\xF3\xA4\x8B\x55\x60";
+    const char *exit_replace = "\x53\x52\x51\x8B\x01\xFF\x50\x2C\x85\xC0\x75\x67\x8B\x7C\x24\x14\x8B\x74\x24\x30\x8B\x55\x60\x3B\xD3\x7C\x04\x8B\xCB\xEB\x02\x8B\xCA\x90\x90\xF3\xA4";
+    SearchReplacePattern(dllBase, exit_pattern, exit_replace, 37, TRUE);
+  }
+
   // Disable auto-finish in build sections
   if (config.GetInt(_T("DisableAutoFinishBuilding"))) {
     // Pattern used in August build (jump is much shorter so it uses a different opcode)
