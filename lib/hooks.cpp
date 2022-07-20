@@ -286,8 +286,6 @@ HRESULT WINAPI InterceptD3DRMDeviceUpdate(LPDIRECT3DRMDEVICE device)
   return d3drmDeviceUpdateOriginal(device);
 }
 
-std::map<LPDIRECT3DDEVICE, std::vector<D3DPICKRECORD> > g_PickRecords;
-
 void MultiplyMatrix(D3DMATRIX &c, const D3DMATRIX &a, const D3DMATRIX &b)
 {
   c._11 = (a._11 * b._11) + (a._21 * b._12) + (a._31 * b._13) + (a._41 * b._14);
@@ -311,9 +309,22 @@ void MultiplyMatrix(D3DMATRIX &c, const D3DMATRIX &a, const D3DMATRIX &b)
   c._44 = (a._14 * b._41) + (a._24 * b._42) + (a._34 * b._43) + (a._44 * b._44);
 }
 
+// Adapted from: http://totologic.blogspot.com/2014/01/accurate-point-in-triangle-test.html
+bool BarycentricPointInTriangle(float x1, float y1, float x2, float y2, float x3, float y3, float x, float y)
+{
+  float denominator = ((y2 - y3)*(x1 - x3) + (x3 - x2)*(y1 - y3));
+  float a = ((y2 - y3)*(x - x3) + (x3 - x2)*(y - y3)) / denominator;
+  float b = ((y3 - y1)*(x - x3) + (x1 - x3)*(y - y3)) / denominator;
+  float c = 1 - a - b;
+
+  return 0 <= a && a <= 1 && 0 <= b && b <= 1 && 0 <= c && c <= 1;
+}
+
+std::vector<D3DPICKRECORD> g_PickRecords;
+
 typedef HRESULT (WINAPI *d3dimPickFunction) (LPDIRECT3DDEVICE, LPDIRECT3DEXECUTEBUFFER, LPDIRECT3DVIEWPORT, DWORD, LPD3DRECT);
 d3dimPickFunction d3dimPickOriginal = NULL;
-HRESULT WINAPI InterceptD3DIMPick(LPDIRECT3DDEVICE lpDevice, LPDIRECT3DEXECUTEBUFFER lpBuffer, LPDIRECT3DVIEWPORT lpViewport, DWORD, LPD3DRECT lpRect)
+HRESULT WINAPI InterceptD3DIMPick(LPDIRECT3DDEVICE lpDevice, LPDIRECT3DEXECUTEBUFFER lpBuffer, LPDIRECT3DVIEWPORT lpViewport, DWORD dwFlags, LPD3DRECT lpRect)
 {
   D3DEXECUTEBUFFERDESC desc;
   ZeroMemory(&desc, sizeof(D3DEXECUTEBUFFERDESC));
@@ -334,11 +345,10 @@ HRESULT WINAPI InterceptD3DIMPick(LPDIRECT3DDEVICE lpDevice, LPDIRECT3DEXECUTEBU
 
   char *instr = (char *)desc.lpData + data.dwInstructionOffset;
   D3DVERTEX *vertex = (D3DVERTEX *) ((char *)desc.lpData + data.dwVertexOffset);
-  std::vector<D3DVERTEX> dst_buf;
+  std::vector<D3DTLVERTEX> dst_buf;
   dst_buf.resize(data.dwVertexCount);
 
-  std::vector<D3DPICKRECORD> &records = g_PickRecords[lpDevice];
-  records.clear();
+  g_PickRecords.clear();
 
   LPD3DINSTRUCTION current;
   while (current = (LPD3DINSTRUCTION)instr, current->bOpcode != D3DOP_EXIT) {
@@ -353,40 +363,27 @@ HRESULT WINAPI InterceptD3DIMPick(LPDIRECT3DDEVICE lpDevice, LPDIRECT3DEXECUTEBU
       for (WORD i=0; i<count; i++) {
         D3DTRIANGLE *ci = (D3DTRIANGLE*)instr;
 
-        bool inside_x = lpRect->x1 >= min(dst_buf[ci->v1].x, min(dst_buf[ci->v2].x, dst_buf[ci->v3].x)) && lpRect->x1 <= max(dst_buf[ci->v1].x, max(dst_buf[ci->v2].x, dst_buf[ci->v3].x));
-        bool inside_y = lpRect->y1 >= min(dst_buf[ci->v1].y, min(dst_buf[ci->v2].y, dst_buf[ci->v3].y)) && lpRect->y1 <= max(dst_buf[ci->v1].y, max(dst_buf[ci->v2].y, dst_buf[ci->v3].y));
+        D3DTLVERTEX *verts[3];
+        verts[0] = &dst_buf[ci->v1];
+        verts[1] = &dst_buf[ci->v2];
+        verts[2] = &dst_buf[ci->v3];
 
-        if (inside_x && inside_y) {
+        LONG x = lpRect->x1;
+        LONG y = lpRect->y1;
+
+        if (BarycentricPointInTriangle(verts[0]->sx, verts[0]->sy, verts[1]->sx, verts[1]->sy,
+          verts[2]->sx, verts[2]->sy, x, y)) {
           D3DPICKRECORD record;
 
           record.bOpcode = current->bOpcode;
-          record.bPad = 0;
 
           // Write current instruction offset into file
-          record.dwOffset = (DWORD)((LPBYTE)current + sizeof(D3DINSTRUCTION) - ((LPBYTE)desc.lpData + data.dwInstructionOffset));
+          record.dwOffset = (DWORD)ci - ((DWORD)desc.lpData + data.dwInstructionOffset);
 
           // Just get the center Z
-          record.dvZ = (vertex[ci->v1].z + vertex[ci->v2].z + vertex[ci->v3].z) / 3;
+          record.dvZ = (verts[0]->sz + verts[1]->sz + verts[2]->sz) / 3;
 
-          if (records.empty()) {
-            records.push_back(record);
-          } else if (record.dvZ > records[0].dvZ) {
-            records[0] = record;
-          }
-
-          printf("Clicked  %u,%u  %f  to  %f,%f  %f,%f  %f,%f\n",
-            lpRect->x1, lpRect->y1, record.dvZ,
-            dst_buf[ci->v1].x, dst_buf[ci->v1].y,
-            dst_buf[ci->v2].x, dst_buf[ci->v2].y,
-            dst_buf[ci->v3].x, dst_buf[ci->v3].y
-          );
-        } else {
-          /*printf("Comparing  %u,%u  to  %f,%f  %f,%f  %f,%f  failed\n",
-            lpRect->x1, lpRect->y1,
-            dst_buf[ci->v1].x, dst_buf[ci->v1].y,
-            dst_buf[ci->v2].x, dst_buf[ci->v2].y,
-            dst_buf[ci->v3].x, dst_buf[ci->v3].y
-          );*/
+          g_PickRecords.push_back(record);
         }
 
         instr += size;
@@ -446,7 +443,7 @@ HRESULT WINAPI InterceptD3DIMPick(LPDIRECT3DDEVICE lpDevice, LPDIRECT3DEXECUTEBU
           MultiplyMatrix(mat, proj, mat);
 
           for (DWORD j=0; j<ci->dwCount; j++) {
-            D3DVERTEX in = vertex[ci->wStart+j];
+            const D3DVERTEX &in = vertex[ci->wStart+j];
 
             float x, y, z, rhw;
 
@@ -461,19 +458,21 @@ HRESULT WINAPI InterceptD3DIMPick(LPDIRECT3DDEVICE lpDevice, LPDIRECT3DEXECUTEBU
 
             y *= -1;
 
-            x *= vp.dwWidth / 2;
-            y *= vp.dwHeight / 2;
+            x *= vp.dvScaleX;
+            y *= vp.dvScaleY;
             z *= vp.dvMaxZ - vp.dvMinZ;
 
             x += vp.dwWidth / 2 + vp.dwX;
             y += vp.dwHeight / 2 + vp.dwY;
             z += vp.dvMinZ;
 
-            D3DVERTEX &out = dst_buf[ci->wDest+j];
-            out = in;
-            out.x = x;
-            out.y = y;
-            out.z = z;
+            rhw = 1 / rhw;
+
+            D3DTLVERTEX &out = dst_buf[ci->wDest+j];
+            out.sx = x;
+            out.sy = y;
+            out.sz = in.z; // Use original Z so we can Z order on return
+            out.rhw = rhw;
           }
           break;
         }
@@ -484,10 +483,15 @@ HRESULT WINAPI InterceptD3DIMPick(LPDIRECT3DDEVICE lpDevice, LPDIRECT3DEXECUTEBU
 
         instr += size;
       }
+
+      d3dev2->Release();
       break;
     }
     default:
       printf("unhandled op: %lx\n", current->bOpcode);
+    case D3DOP_STATELIGHT:
+    case D3DOP_STATERENDER:
+    case D3DOP_SETSTATUS:
       instr += size * count;
       break;
     }
@@ -507,11 +511,10 @@ HRESULT WINAPI InterceptD3DIMGetPickRecords(LPDIRECT3DDEVICE lpDevice, LPDWORD d
     return DDERR_INVALIDPARAMS;
   }
 
-  std::vector<D3DPICKRECORD> &records = g_PickRecords[lpDevice];
-  if (lpRecords && *dwCount >= records.size()) {
-    memcpy(lpRecords, &records[0], records.size() * sizeof(D3DPICKRECORD));
+  if (lpRecords && *dwCount >= g_PickRecords.size()) {
+    memcpy(lpRecords, &g_PickRecords[0], sizeof(D3DPICKRECORD) * g_PickRecords.size());
   }
-  *dwCount = records.size();
+  *dwCount = g_PickRecords.size();
 
   return D3D_OK;
 }
@@ -589,9 +592,14 @@ LRESULT CALLBACK InterceptWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
 
     return 0;
   } else if (uMsg == WM_KEYDOWN) {
-    if (wParam == '5') {
+    switch (wParam) {
+    case '5':
       d3drm_device->SetQuality(D3DRMRENDER_WIREFRAME);
       printf("quality should have changed\n");
+      break;
+    case VK_BACK: // Clear console, useful for debugging
+      system("cls");
+      break;
     }
   }
 
