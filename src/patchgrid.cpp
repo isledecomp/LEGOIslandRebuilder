@@ -197,6 +197,10 @@ PatchGrid::PatchGrid()
            "1.0 = Default (greater than 1.0 is zoomed in, less than 1.0 is zoomed out)",
            AddDoubleItem(sectionGraphics, "Field of View Adjustment", 1.0));
 
+  AddPatch("NativeSMK",
+           "Very few of LEGO Island's movies are actually the same resolution as the game. This patch disables scaling of these movies, causing LEGO Island to play them at their native resolutions.",
+           AddBoolItem(sectionGraphics, "Play Movies at Native Resolution", false));
+
   // Audio section
   HSECTION sectionMusic = AddSection("Audio");
 

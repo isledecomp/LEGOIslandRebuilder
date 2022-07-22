@@ -83,6 +83,13 @@ __declspec(dllexport) DWORD WINAPI Patch()
     SearchReplacePattern(dllBase, exit_pattern, exit_replace, 37, TRUE);
   }
 
+  // Disable SMK scaling
+  if (config.GetInt(_T("NativeSMK"))) {
+    const char *smk_pattern = "\x8A\x4C\x24\x0C\x51";
+    const char *smk_replace = "\xB1\x00\x90\x90\x51";
+    SearchReplacePattern(dllBase, smk_pattern, smk_replace, 5, TRUE);
+  }
+
   // Disable auto-finish in build sections
   if (config.GetInt(_T("DisableAutoFinishBuilding"))) {
     // Pattern used in August build (jump is much shorter so it uses a different opcode)
