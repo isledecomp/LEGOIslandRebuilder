@@ -70,6 +70,24 @@ HANDLE Launcher::Launch(HWND parent)
   _tcscpy(srcDir, filename);
   PathRemoveFileSpec(srcDir);
 
+  // Detect incompatible versions of ISLE
+  HANDLE hIsle = CreateFile(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+  DWORD dwSize = GetFileSize(hIsle, NULL);
+  if (dwSize > 100000) {
+    char buf[200];
+    sprintf(buf, "ISLE.EXE is abnormally large (%d KB). This executable might be protected with SecuROM, "
+      "which could cause unexpected behavior with LEGO Island Rebuilder. "
+      "It is recommended to replace ISLE.EXE with an untampered version (usually around 85 KB) "
+      "to use Rebuilder with this installation of LEGO Island.\n\nClick OK if you would like to continue anyway.", dwSize / 1024);
+    
+    int result = MessageBox(parent, buf, "Warning", MB_ICONWARNING | MB_OKCANCEL);
+    if (result == IDCANCEL) {
+      return NULL;
+    }
+  }
+
+  CloseHandle(hIsle);
+
   // Start launching our copy
   PROCESS_INFORMATION pi;
   if (!TryCreateProcess(parent, filename, srcDir, TRUE, &pi)) {
