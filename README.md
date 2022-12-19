@@ -14,7 +14,7 @@
   </a>
     <img src="https://img.shields.io/github/stars/itsmattkc/legoislandrebuilder.svg">
   </a>
-    <img src="https://img.shields.io/github/workflow/status/itsmattkc/legoislandrebuilder/CI">
+    <img src="https://img.shields.io/github/actions/workflow/status/itsmattkc/LEGOIslandRebuilder/ci.yml?branch=master">
 </p>
 
 <p align="center">
