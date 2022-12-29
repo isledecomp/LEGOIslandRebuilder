@@ -38,7 +38,7 @@ LEGO Island Rebuilder is a launcher and modification tool for Mindscape's 1997 v
 
 It includes fixes to numerous bugs in the original game and multiple quality of life patches while making no permanent changes to the game installation. Additionally, Rebuilder acts as a full replacement for the original configuration tool. 
 
-Rebuilder currently supports [all known versions of LEGO Island](https://www.legoisland.org/wiki/index.php/LEGO_Island_Versions).
+Rebuilder currently supports [all known versions of LEGO Island](https://www.legoisland.org/wiki/index.php?title=LEGO_Island_Versions).
 
 ## Download
 
