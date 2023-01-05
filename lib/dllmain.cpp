@@ -227,6 +227,10 @@ __declspec(dllexport) DWORD WINAPI Patch()
                        "\x80\x02\x00\x00\xE0\x01\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x80\x02\x00\x00\xE0\x01\x00\x00",
                        "\x40\x01\x00\x00\xE0\x01\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x80\x02\x00\x00\xE0\x01\x00\x00", 24);*/
 
+  // Buffer overflow fix
+  LPVOID fread_offset = SearchPattern(dllBase, "\x24\x10\x6A\x01\x50\x51", 6);
+  freadOriginal = (freadFunction)OverwriteCall((char*)fread_offset + 6, (LPVOID)InterceptFread);
+
   return 0;
 }
 

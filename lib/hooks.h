@@ -1,6 +1,8 @@
 #ifndef HOOKS_H
 #define HOOKS_H
 
+#include <cstdio>
+
 #include <D3DRM.H>
 #include <DDRAW.H>
 #include <DINPUT.H>
@@ -62,5 +64,9 @@ SHORT WINAPI InterceptGetAsyncKeyState(int vKey);
 typedef HRESULT (WINAPI *dinputCreateFunction)(HINSTANCE hinst, DWORD dwVersion, LPDIRECTINPUTA *ppDI, LPUNKNOWN punkOuter);
 extern dinputCreateFunction dinputCreateOriginal;
 HRESULT WINAPI InterceptDirectInputCreateA(HINSTANCE hinst, DWORD dwVersion, LPDIRECTINPUTA *ppDI, LPUNKNOWN punkOuter);
+
+typedef _CRTIMP size_t (__cdecl *freadFunction)(void *buffer, size_t size, size_t count, FILE *stream);
+extern freadFunction freadOriginal;
+_CRTIMP size_t __cdecl InterceptFread(void *buffer, size_t size, size_t count, FILE *stream);
 
 #endif // HOOKS_H

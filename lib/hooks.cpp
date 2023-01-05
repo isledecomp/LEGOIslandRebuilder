@@ -725,3 +725,14 @@ HRESULT WINAPI InterceptDirectInputCreateA(HINSTANCE hinst, DWORD dwVersion, LPD
 
   return res;
 }
+
+freadFunction freadOriginal = NULL;
+_CRTIMP size_t __cdecl InterceptFread(void *buffer, size_t size, size_t count, FILE *stream)
+{
+  if (size > 128) {
+    MessageBoxA(NULL, "Invalid name length encountered during parsing. The file may be corrupt.", "WORLD.WDB Read Error", MB_ICONERROR);
+    return -1;
+  }
+
+  return freadOriginal(buffer, size, count, stream);
+}
