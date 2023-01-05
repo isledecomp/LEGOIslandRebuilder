@@ -125,15 +125,20 @@ LPVOID OverwriteVirtualTable(LPVOID object, SIZE_T methodIndex, LPVOID overrideF
   return originalFunction;
 }
 
-BOOL OverwriteCall(LPVOID destination, LPVOID localCall)
+LPVOID OverwriteCall(LPVOID destination, LPVOID localCall)
 {
+  char originalFunction[5];
   char callInst[5];
 
   callInst[0] = '\xE8';
 
   *(DWORD*)(&callInst[1]) = (DWORD)localCall - ((DWORD)destination + 5);
 
-  return WriteMemory(destination, callInst, 5);
+  if (!WriteMemory(destination, callInst, 5, originalFunction)) {
+    return NULL;
+  }
+
+  return (LPVOID)((*(DWORD *)(originalFunction + 1)) + ((DWORD)destination + 5));
 }
 
 LPVOID SearchPattern(LPVOID imageBase, LPCVOID search, SIZE_T count)

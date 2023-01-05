@@ -5,7 +5,7 @@
 
 BOOL WriteMemory(LPVOID destination, LPVOID source, size_t length, LPVOID oldData = NULL);
 
-BOOL OverwriteCall(LPVOID destination, LPVOID localCall);
+LPVOID OverwriteCall(LPVOID destination, LPVOID localCall);
 
 LPVOID SearchPattern(LPVOID imageBase, LPCVOID search, SIZE_T count);
 
