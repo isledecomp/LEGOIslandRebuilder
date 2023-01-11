@@ -162,9 +162,9 @@ int OverwriteAllCalls(LPVOID imageBase, LPCVOID from, LPCVOID to)
         // Loop through every byte to find x86 calls
         SIZE_T maxOffset = mbi.RegionSize - count;
         for (SIZE_T i=0; i<maxOffset; i++) {
-          char *offset = (char *)((UINT_PTR)(mbi.BaseAddress)+i);
+          unsigned char *offset = (unsigned char *)((UINT_PTR)(mbi.BaseAddress)+i);
 
-          if (*offset == 0xE8) {
+          if ((*offset) == 0xE8) {
             // Found an x86 call instruction, see if it's to our function
             DWORD *func = (DWORD *) (offset + 1);
             DWORD adjustment = (DWORD) (offset + 5);
