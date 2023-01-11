@@ -141,6 +141,54 @@ LPVOID OverwriteCall(LPVOID destination, LPVOID localCall)
   return (LPVOID)((*(DWORD *)(originalFunction + 1)) + ((DWORD)destination + 5));
 }
 
+int OverwriteAllCalls(LPVOID imageBase, LPCVOID from, LPCVOID to)
+{
+  int count = 0;
+
+  HANDLE process = GetCurrentProcess();
+  MEMORY_BASIC_INFORMATION mbi = {0};
+
+  DWORD fromAddr = (DWORD) from;
+  DWORD toAddr = (DWORD) to;
+
+  // Loop through memory pages
+  UINT_PTR addr = (UINT_PTR)imageBase;
+  while (VirtualQueryEx(process, (LPVOID)addr, &mbi, sizeof(mbi)) && mbi.AllocationBase == imageBase) {
+    if (mbi.State == MEM_COMMIT && mbi.Protect != PAGE_NOACCESS) {
+      DWORD oldProtec;
+
+      // Try to gain access to this memory page
+      if (VirtualProtect(mbi.BaseAddress, mbi.RegionSize, PAGE_EXECUTE_READWRITE, &oldProtec)) {
+        // Loop through every byte to find x86 calls
+        SIZE_T maxOffset = mbi.RegionSize - count;
+        for (SIZE_T i=0; i<maxOffset; i++) {
+          char *offset = (char *)((UINT_PTR)(mbi.BaseAddress)+i);
+
+          if (*offset == 0xE8) {
+            // Found an x86 call instruction, see if it's to our function
+            DWORD *func = (DWORD *) (offset + 1);
+            DWORD adjustment = (DWORD) (offset + 5);
+
+            if ((*func) == (fromAddr - adjustment)) {
+              // Found a call to this function, replace it with our own
+              *func = toAddr - adjustment;
+              count++;
+              i += 4;
+            }
+          }
+        }
+
+        // Restore original permissions
+        VirtualProtect(mbi.BaseAddress, mbi.RegionSize, oldProtec, &oldProtec);
+      }
+    }
+
+    addr += mbi.RegionSize;
+  }
+
+  return count;
+}
+
 LPVOID SearchPattern(LPVOID imageBase, LPCVOID search, SIZE_T count)
 {
   LPVOID ret = NULL;
