@@ -13,6 +13,19 @@ SIZE_T SearchReplacePattern(LPVOID imageBase, LPCVOID search, LPCVOID replace, S
 
 LPVOID OverwriteImport(LPVOID imageBase, LPCSTR overrideFunction, LPVOID override);
 
+template <typename T>
+T PointerToMemberFunction(LPVOID ptr)
+{
+  union U {
+    LPVOID in;
+    T out;
+  };
+
+  U u;
+  u.in = ptr;
+  return u.out;
+}
+
 LPVOID OverwriteVirtualTable(LPVOID object, SIZE_T methodIndex, LPVOID overrideFunction);
 
 #endif // UTIL_H
