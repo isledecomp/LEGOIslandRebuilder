@@ -192,6 +192,10 @@ PatchGrid::PatchGrid()
            "Change LEGO Island's transition animation.",
            AddComboItem(sectionGraphics, "Transition Type", animationList, 2));
 
+  AddPatch("TransitionSpeed",
+           "Sets the speed of LEGO Island's transition animations.\n\n(50 = default; lower = faster, higher = slower)",
+           AddIntegerItem(sectionGraphics, "Transition Speed", 50));
+
   AddPatch("FOVMultiplier",
            "Globally adjusts the field of view by a multiplier\n\n"
            "1.0 = Default (greater than 1.0 is zoomed in, less than 1.0 is zoomed out)",

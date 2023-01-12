@@ -754,5 +754,7 @@ MxResult MxTransitionManager::InterceptStartTransition(TransitionType animationT
     animationType = WINDOW;
   }
 
+  speed = config.GetInt(_T("TransitionSpeed"));
+
   return (this->*startTransitionOriginal)(animationType, speed, unk, playMusicInTransition);
 }
