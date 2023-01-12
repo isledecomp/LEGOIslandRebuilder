@@ -740,6 +740,8 @@ _CRTIMP size_t __cdecl InterceptFread(void *buffer, size_t size, size_t count, F
 startTransitionFunction startTransitionOriginal = NULL;
 MxResult MxTransitionManager::InterceptStartTransition(TransitionType animationType, int speed, byte unk, bool playMusicInTransition)
 {
+  speed = config.GetInt("TransitionSpeed");
+
   std::string animation_type = config.GetString("TransitionType");
 
   if (animation_type == "No Animation") {
@@ -752,9 +754,14 @@ MxResult MxTransitionManager::InterceptStartTransition(TransitionType animationT
     animationType = VERTICAL_WIPE;
   } else if (animation_type == "Window") {
     animationType = WINDOW;
+  } else if (animation_type == "Random") {
+    animationType = (TransitionType)(rand() % 4 + 2);
+    // The Pixelation animation runs much faster by nature than the other animations, 
+    // this magic is to make the speed inconsistency feel less jarring
+    if (animationType == PIXELATION && speed < 30) {
+      speed += 25;
+    }
   }
-
-  speed = config.GetInt(_T("TransitionSpeed"));
 
   return (this->*startTransitionOriginal)(animationType, speed, unk, playMusicInTransition);
 }

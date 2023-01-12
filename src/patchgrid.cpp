@@ -188,6 +188,7 @@ PatchGrid::PatchGrid()
   animationList.push_back("Pixelation");
   animationList.push_back("Vertical Wipe");
   animationList.push_back("Window");
+  animationList.push_back("Random");
   AddPatch("TransitionType",
            "Change LEGO Island's transition animation.",
            AddComboItem(sectionGraphics, "Transition Type", animationList, 2));
