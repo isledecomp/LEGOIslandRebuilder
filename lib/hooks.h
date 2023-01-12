@@ -69,4 +69,30 @@ typedef _CRTIMP size_t (__cdecl *freadFunction)(void *buffer, size_t size, size_
 extern freadFunction freadOriginal;
 _CRTIMP size_t __cdecl InterceptFread(void *buffer, size_t size, size_t count, FILE *stream);
 
+enum MxResult
+{
+  SUCCESS = 0,
+  FAILURE = 0xFFFFFFFF
+};
+
+enum TransitionType
+{
+  NOT_TRANSITIONING = 0,
+  NO_ANIMATION = 1,
+  DISSOLVE = 2,
+  PIXELATION = 3,
+  VERTICAL_WIPE = 4,
+  WINDOW = 5,
+  BROKEN = 6
+};
+
+class MxTransitionManager
+{
+public:
+  MxResult InterceptStartTransition(TransitionType animationType, int speed, byte unk, bool playMusicInTransition);
+};
+
+typedef MxResult (MxTransitionManager::* startTransitionFunction)(TransitionType, int, byte, bool);
+extern startTransitionFunction startTransitionOriginal;
+
 #endif // HOOKS_H

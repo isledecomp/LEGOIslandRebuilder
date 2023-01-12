@@ -736,3 +736,23 @@ _CRTIMP size_t __cdecl InterceptFread(void *buffer, size_t size, size_t count, F
 
   return freadOriginal(buffer, size, count, stream);
 }
+
+startTransitionFunction startTransitionOriginal = NULL;
+MxResult MxTransitionManager::InterceptStartTransition(TransitionType animationType, int speed, byte unk, bool playMusicInTransition)
+{
+  std::string animation_type = config.GetString("TransitionType");
+
+  if (animation_type == "No Animation") {
+    animationType = NO_ANIMATION;
+  } else if (animation_type == "Dissolve") {
+    animationType = DISSOLVE;
+  } else if (animation_type == "Pixelation") {
+    animationType = PIXELATION;
+  } else if (animation_type == "Vertical Wipe") {
+    animationType = VERTICAL_WIPE;
+  } else if (animation_type == "Window") {
+    animationType = WINDOW;
+  }
+
+  return (this->*startTransitionOriginal)(animationType, speed, unk, playMusicInTransition);
+}
