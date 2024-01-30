@@ -529,6 +529,8 @@ HRESULT WINAPI InterceptD3DRMCreateViewport(LPDIRECT3DRM d3drm, LPDIRECT3DRMDEVI
 
   d3drm_device = device;
 
+  /* Disabled temporarily until this implementation of Pick becomes more reliable
+  
   // Check if we're running on Wine, in which case we'll override Pick() and GetPickRecords()
   if (HMODULE ntdll = GetModuleHandle("NTDLL.DLL")) {
     if (GetProcAddress(ntdll, "wine_get_version")) {
@@ -541,7 +543,7 @@ HRESULT WINAPI InterceptD3DRMCreateViewport(LPDIRECT3DRM d3drm, LPDIRECT3DRMDEVI
         }
       }
     }
-  }
+  }*/
 
   if (res == DD_OK) {
     if (!d3drmDeviceUpdateOriginal) {
