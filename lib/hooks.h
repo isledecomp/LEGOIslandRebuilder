@@ -80,8 +80,8 @@ enum TransitionType
   NOT_TRANSITIONING = 0,
   NO_ANIMATION = 1,
   DISSOLVE = 2,
-  PIXELATION = 3,
-  VERTICAL_WIPE = 4,
+  MOSAIC = 3,
+  WIPE_DOWN = 4,
   WINDOW = 5,
   BROKEN = 6
 };

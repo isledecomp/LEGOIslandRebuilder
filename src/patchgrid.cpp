@@ -185,8 +185,8 @@ PatchGrid::PatchGrid()
   vector<string> animationList;
   animationList.push_back("No Animation");
   animationList.push_back("Dissolve");
-  animationList.push_back("Pixelation");
-  animationList.push_back("Vertical Wipe");
+  animationList.push_back("Mosaic");
+  animationList.push_back("Wipe Down");
   animationList.push_back("Window");
   animationList.push_back("Random");
   AddPatch("TransitionType",

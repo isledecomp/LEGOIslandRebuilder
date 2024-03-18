@@ -750,17 +750,17 @@ MxResult MxTransitionManager::InterceptStartTransition(TransitionType animationT
     animationType = NO_ANIMATION;
   } else if (animation_type == "Dissolve") {
     animationType = DISSOLVE;
-  } else if (animation_type == "Pixelation") {
-    animationType = PIXELATION;
-  } else if (animation_type == "Vertical Wipe") {
-    animationType = VERTICAL_WIPE;
+  } else if (animation_type == "Mosaic") {
+    animationType = MOSAIC;
+  } else if (animation_type == "Wipe Down") {
+    animationType = WIPE_DOWN;
   } else if (animation_type == "Window") {
     animationType = WINDOW;
   } else if (animation_type == "Random") {
     animationType = (TransitionType)(rand() % 4 + 2);
-    // The Pixelation animation runs much faster by nature than the other animations, 
+    // The Mosaic animation runs much faster by nature than the other animations, 
     // this magic is to make the speed inconsistency feel less jarring
-    if (animationType == PIXELATION && speed < 30) {
+    if (animationType == MOSAIC && speed < 30) {
       speed += 25;
     }
   }
