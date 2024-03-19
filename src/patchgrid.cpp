@@ -80,9 +80,9 @@ PatchGrid::PatchGrid()
            AddBoolItem(sectionGeneral, "Disable Auto-Finish Building Section", false));
 
   AddPatch("ExitCrashFix",
-           "LEGO Island contains a buffer overrun bug that frequently crashes the game when trying "
+           "LEGO Island contains a bug that frequently crashes the game when trying "
            "to exit. This is particularly prevalent on newer versions of Windows and Wine. This "
-           "patch will fix the crash (though the audio glitches will remain).",
+           "patch will fix the crash and the associated animation gltiches and audio buzzes.",
            AddBoolItem(sectionGeneral, "Exit Crash Fix", false));
 
   // Controls section
