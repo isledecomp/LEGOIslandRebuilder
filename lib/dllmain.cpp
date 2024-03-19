@@ -82,7 +82,7 @@ __declspec(dllexport) DWORD WINAPI Patch()
     const char *buffer_replace = "\x53\x52\x51\x8B\x01\xFF\x50\x2C\x85\xC0\x75\x67\x8B\x7C\x24\x14\x8B\x74\x24\x30\x8B\x55\x60\x3B\xD3\x7C\x04\x8B\xCB\xEB\x02\x8B\xCA\x90\x90\xF3\xA4";
 
     const char *wndproc_pattern = "\xC6\x44\x24\x00\x00\x53\x56\x57";
-    const char *wndproc_replace = "\xC6\x44\x24\x00\x10\x53\x56\x57";
+    const char *wndproc_replace = "\xC6\x44\x24\x00\x0A\x53\x56\x57";
 
     SearchReplacePattern(dllBase, buffer_pattern, buffer_replace, 37, TRUE);
     SearchReplacePattern(exeBase, wndproc_pattern, wndproc_replace, 8, TRUE);
