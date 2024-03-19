@@ -82,7 +82,7 @@ PatchGrid::PatchGrid()
   AddPatch("ExitCrashFix",
            "LEGO Island contains a bug that frequently crashes the game when trying "
            "to exit. This is particularly prevalent on newer versions of Windows and Wine. This "
-           "patch will fix the crash and the associated animation gltiches and audio buzzes.",
+           "patch will fix the crash and the associated animation glitches and audio buzzes.",
            AddBoolItem(sectionGeneral, "Exit Crash Fix", false));
 
   // Controls section
